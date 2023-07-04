@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Fundamentals/Vector2.hpp"
+#include "fundamentals/Vector2.hpp"
 #include "Point.hpp"
 
 struct Spring {

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(PhysicsEngine)
+project(physics-envy)
 
 if (MSVC)
   set(PROJECT_COMPILE_OPTIONS /Wall /analyze)
@@ -13,5 +13,5 @@ else()
   string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -fsanitize=address,undefined,leak")
 endif()
 
-add_library(PhysicsEngine)
-target_include_directories(PhysicsEngine INTERFACE /include)
+add_library(physics-envy INTERFACE)
+target_include_directories(physics-envy INTERFACE /include)

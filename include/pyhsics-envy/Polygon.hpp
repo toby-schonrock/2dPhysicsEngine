@@ -2,12 +2,7 @@
 
 #include "Edge.hpp"
 #include "Point.hpp"
-#include "SFML/Graphics.hpp"
-#include "Fundamentals/Vector2.hpp"
-#include "imgui.h"
-#include <cstddef>
-
-sf::Vector2f visualize(const Vec2& v);
+#include "fundamentals/Vector2.hpp"
 
 class Polygon {
   private:
@@ -16,9 +11,9 @@ class Polygon {
 
   public:
     std::vector<Edge>         edges{};
-    sf::ConvexShape           shape;
+    // sf::ConvexShape           shape;
     std::array<sf::Vertex, 2> line{};
-    bool direction; // the way round the points go - true is anticlockwise
+    bool                      direction; // the way round the points go - true is anticlockwise
 
     explicit Polygon() = default;
 
@@ -41,22 +36,22 @@ class Polygon {
     void boundsUp() {
         for (const Edge& edge: edges) { // loop over all points
             const Vec2& vert = edge.p1();
-            maxBounds.x   = std::max(maxBounds.x, vert.x);
-            maxBounds.y   = std::max(maxBounds.y, vert.y);
-            minBounds.x   = std::min(minBounds.x, vert.x);
-            minBounds.y   = std::min(minBounds.y, vert.y);
+            maxBounds.x      = std::max(maxBounds.x, vert.x);
+            maxBounds.y      = std::max(maxBounds.y, vert.y);
+            minBounds.x      = std::min(minBounds.x, vert.x);
+            minBounds.y      = std::min(minBounds.y, vert.y);
         }
     }
 
     bool isBounded(const Vec2& pos) const {
         return pos.x >= minBounds.x && pos.y >= minBounds.y && pos.x <= maxBounds.x &&
-                       pos.y <= maxBounds.y;
+               pos.y <= maxBounds.y;
     }
 
     bool isContained(const Vec2& pos) const {
         bool contained = false;
-            for (const Edge& edge: edges) 
-                if (edge.rayCast(pos)) contained = !contained;
+        for (const Edge& edge: edges)
+            if (edge.rayCast(pos)) contained = !contained;
         return contained;
     }
 

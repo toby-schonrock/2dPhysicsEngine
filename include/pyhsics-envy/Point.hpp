@@ -1,16 +1,10 @@
 #pragma once
 
-#include "Fundamentals/Vector2.hpp"
-#include "SFML/Graphics.hpp"
-#include <algorithm>
-#include <cstddef>
-#include <string>
-
-sf::Vector2f visualize(const Vec2& v);
+#include "fundamentals/Vector2.hpp"
+#include "Util.hpp"
 
 struct Point {
   public:
-    sf::Color color;
     Vec2      pos;
     Vec2      vel{};
     Vec2      f;
@@ -19,8 +13,8 @@ struct Point {
 
     Point() = default;
 
-    Point(const Vec2& pos_, double mass_, const sf::Color& color_, bool fixed_)
-        : color(color_), pos(pos_), mass(mass_), fixed(fixed_) {}
+    Point(const Vec2& pos_, double mass_, bool fixed_)
+        : pos(pos_), mass(mass_), fixed(fixed_) {}
 
     void update(double deltaTime, double gravity) {
         if (!fixed) {
@@ -34,21 +28,15 @@ struct Point {
     // used for saving point to file as text
     friend std::ostream& operator<<(std::ostream& os, const Point& p) {
         return os << p.fixed << ' ' << p.pos.x << ' ' << p.pos.y << ' ' << p.vel.x << ' ' << p.vel.y
-                  << ' ' << p.mass << ' ' << std::to_string(p.color.r) << ' '
-                  << std::to_string(p.color.g) << ' ' << std::to_string(p.color.b) << ' '
-                  << std::to_string(p.color.a);
+                  << ' ' << p.mass;
     }
 
-    // used for creating point from file
+        // used for creating point from file
     friend std::istream& operator>>(std::istream& is, Point& p) {
         safeStreamRead(is, p.fixed);
         safeStreamRead(is, p.pos);
         safeStreamRead(is, p.vel);
         safeStreamRead(is, p.mass);
-        safeStreamRead(is, p.color.r);
-        safeStreamRead(is, p.color.g);
-        safeStreamRead(is, p.color.b);
-        safeStreamRead(is, p.color.a);
         if (is.good()) {
             throw std::runtime_error("To many columns for a point - file invalid");
         }
