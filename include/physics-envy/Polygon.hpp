@@ -3,6 +3,7 @@
 #include "Edge.hpp"
 #include "Point.hpp"
 #include "fundamentals/Vector2.hpp"
+#include <vector>
 
 class Polygon {
   private:
@@ -10,10 +11,8 @@ class Polygon {
     Vec2 minBounds{};
 
   public:
-    std::vector<Edge>         edges{};
-    // sf::ConvexShape           shape;
-    std::array<sf::Vertex, 2> line{};
-    bool                      direction; // the way round the points go - true is anticlockwise
+    std::vector<Edge> edges{};
+    bool direction; // the way round the points go - true is anticlockwise
 
     explicit Polygon() = default;
 
@@ -21,13 +20,10 @@ class Polygon {
         if (points.size() == 1)
             throw std::logic_error("Polygon cannot be constructed with 1 point");
 
-        shape.setPointCount(points.size());
         for (std::size_t i = 0; i != points.size() - 1; i++) {
             edges.push_back({points[i], points[i + 1]});
-            shape.setPoint(i, visualize(points[i]));
         }
         edges.push_back({points[points.size() - 1], points[0]}); // for last one
-        shape.setPoint(points.size() - 1, visualize(points[points.size() - 1]));
         boundsUp();
         isConvex(); // updates the direction variable ;)
     }
@@ -84,26 +80,6 @@ class Polygon {
         }
         p.pos = closestPos;
         p.vel -= (2 * normal.dot(p.vel) * normal); // vector reflection formula
-    }
-
-    void draw(sf::RenderWindow& window, bool update) {
-        if (edges.empty()) throw std::logic_error("cant draw poly if has no edges");
-        if (edges.size() > 2) {
-            if (update) {
-                shape.setPointCount(edges.size());
-                for (std::size_t i = 0; i != edges.size(); i++) {
-                    shape.setPoint(i, visualize(edges[i].p1()));
-                }
-            }
-
-            window.draw(shape);
-        } else if (edges.size() == 2) {
-            if (update) {
-                line[0].position = visualize(edges[0].p1());
-                line[1].position = visualize(edges[1].p1());
-            }
-            window.draw(line.data(), 2, sf::Lines);
-        }
     }
 
     // used for saving polygon to file as string
