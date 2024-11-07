@@ -1,39 +1,65 @@
 #include <algorithm>
 #include <iostream>
+#include <ranges>
 
 #include "include/fundamentals/StableVector.hpp"
 
+template <typename T>
+void print(const T& range) {
+    std::ranges::for_each(
+        range, [](const auto& e) { std::cout << e.obj << " at index - " << e.ind << "\n"; });
+}
+
+template <typename T>
+void inc(T& range) {
+    std::ranges::for_each(range, [](auto& e) { ++e.obj; });
+}
+
+template <typename T>
+void test(T& vec) {
+    using refType = decltype(vec.add(0));
+    vec.add(1);
+    auto a = vec.add(2);
+    vec.add(3);
+    vec.rem(a);
+    vec.add(4);
+    // std::cout << "should be 1, 3, 4 \n";
+    // print(vec);
+    auto b = std::ranges::find_if(vec, [](const auto& i) { return i.obj == 1; });
+    vec.rem(b->ind);
+    // std::cout << "should be 3, 4 \n";
+    // print(vec);
+
+    std::vector<refType> rems;
+    std::ranges::for_each(std::views::iota(5, 13), [&](auto i) {
+        if (i > 5 && i < 9) {
+            rems.push_back(vec.add(i));
+        } else {
+            vec.add(i);
+        }
+    });
+    std::cout << "should be 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 \n";
+    print(vec);
+
+    vec.rem(rems);
+    std::cout << "should be 3, 4, 5, 9, 10, 11, 12 \n";
+    print(vec);
+
+    vec.add(1);
+    inc(vec);
+    std::cout << "should be 2, 4, 5, 6, 10, 11, 12, 13 \n";
+    print(vec);
+}
+
 int main() {
-    PepperedVector<int> s;
-    // CompactVector<int> s;
-    s.add(1);
-    auto b = s.add(2);
-    s.add(3);
-    s.rem(b);
-    s.add(4);
-    auto c = std::find_if(s.begin(), s.end(), [](const auto& i) { return i.obj == 1; });
-    s.rem(c->ind);
-    s.add(5);
-    for (const auto& i: s) {
-        std::cout << i.ind << " " << i.obj << '\n';
-    }
+    std::cout << "starting \n";
+    PepperedVector<int> pep;
+    test(pep);
 
-    CompactMap<int> q;
-    // CompactVector<int> s;
-    q.add(1);
-    b = q.add(2);
-    q.add(3);
-    q.rem(b);
-    q.add(4);
-    auto d = std::find_if(q.begin(), q.end(), [](const auto& i) { return i.obj == 1; });
-    q.rem(d->ind);
-    q.add(5);
-    for (const auto i: q) {
-        std::cout << i.ind << " " << i.obj << '\n';
-    }
+    std::cout << "half done \n";
 
-    // StableVector<std::string> v;
-    // auto                      d = v.add("hi");
-
+    struct refType42;
+    CompactMap<int, refType42> map;
+    test(map);
     return 0;
 }

@@ -1,15 +1,11 @@
 #pragma once
 
 #include <algorithm>
-#include <cstddef>
 #include <filesystem>
 
-#include <fstream>
-#include <iostream>
 #include <string>
 #include <vector>
 
-#include "Edge.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "Spring.hpp"
@@ -58,16 +54,14 @@ class Engine {
     void rmvPoint(PointId pos) {
         points.rem(pos);
 
-        // TODO write remove if for StableVectors
+        // can be replace with ranges algo
         std::vector<SpringId> remIds;
         for (const auto& spring: springs) {
             if (spring.obj.p1 == pos || spring.obj.p2 == pos) { // delete
                 remIds.push_back(spring.ind);
             }
         }
-        for (auto id: remIds) {
-            springs.rem(id);
-        }
+        springs.rem(remIds);
     }
 
     void rmvSpring(SpringId pos) { springs.rem(pos); }
@@ -76,7 +70,7 @@ class Engine {
         if (points.empty()) throw std::logic_error("Finding closest point with no points?!? ;)");
         double  closestDist = std::numeric_limits<double>::infinity();
         PointId closestPos  = points.cbegin()->ind;
-        for (const auto p: points) {
+        for (auto p: points) {
             Vec2   diff = pos - p.obj.pos;
             double dist = diff.x * diff.x + diff.y * diff.y;
             if (dist < closestDist) {
@@ -84,20 +78,18 @@ class Engine {
                 closestPos  = p.ind;
             }
         }
-
         return std::pair<PointId, double>(closestPos, std::sqrt(closestDist));
     }
 
     std::pair<SpringId, double> findClosestSpring(const Vec2 pos) const {
         if (springs.empty()) throw std::logic_error("Finding closest spring with no springs?!? ;)");
         double   closestDist = std::numeric_limits<double>::infinity();
-        SpringId closestPos{};
-        for (std::size_t i = 0; i != springs.size(); ++i) {
-            double dist = pos.distToLine(points[static_cast<std::size_t>(springs[i].p1)].pos,
-                                         points[static_cast<std::size_t>(springs[i].p2)].pos);
+        SpringId closestPos  = springs.cbegin()->ind;
+        for (auto spring: springs) {
+            double dist = pos.distToLine(points[spring.obj.p1].pos, points[spring.obj.p2].pos);
             if (dist < closestDist) {
                 closestDist = dist;
-                closestPos  = static_cast<SpringId>(i);
+                closestPos  = spring.ind;
             }
         }
         return std::pair<SpringId, double>(closestPos, std::sqrt(closestDist));
@@ -120,16 +112,14 @@ class Engine {
 
     //     std::ifstream file{path, std::ios_base::in};
     //     if (!file.is_open()) {
-    //         throw std::runtime_error("failed to open file \"" + path.string() +
-    //         '"');
+    //         throw std::runtime_error("failed to open file \"" + path.string() + '"');
     //     }
 
     //     std::string line;
     //     // points
     //     std::getline(file, line);
     //     if (line != PointHeaders)
-    //         throw std::runtime_error("Point headers invalid: \n is - " + line +
-    //         "\n should be - "
+    //         throw std::runtime_error("Point headers invalid: \n is - " + line + "\n should be - "
     //         +
     //                                  PointHeaders);
 
@@ -144,8 +134,7 @@ class Engine {
     //             std::size_t temp;
     //             safeStreamRead(ss, temp);
     //             if (temp != index)
-    //                 throw std::runtime_error("Non continous point indicie - " +
-    //                 line);
+    //                 throw std::runtime_error("Non continous point indicie - " + line);
     //             safeStreamRead(ss, point);
     //             ++index;
     //             addPoint(point);
@@ -162,8 +151,7 @@ class Engine {
     //             std::size_t temp;
     //             safeStreamRead(ss, temp);
     //             if (temp != index)
-    //                 throw std::runtime_error("Non continous spring indicie - "
-    //                 + line);
+    //                 throw std::runtime_error("Non continous spring indicie - " + line);
     //             safeStreamRead(ss, spring);
     //             spring.p1 += pointOffset;
     //             spring.p2 += pointOffset;
@@ -192,9 +180,9 @@ class Engine {
     //         throw std::runtime_error("Falied to open fstream \n");
     //     }
 
-    //     file << std::fixed <<
-    //     std::setprecision(std::numeric_limits<double>::max_digits10); file <<
-    //     PointHeaders << "\n"; if (enabled.points) {
+    //     file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
+    //     file << PointHeaders << "\n";
+    //     if (enabled.points) {
     //         for (std::size_t i = 0; i != points.size(); ++i) {
     //             file << i << ' ' << points[i] << "\n";
     //         }
@@ -213,8 +201,7 @@ class Engine {
     //     }
     // }
 
-    // static bool checkIfHeader(const std::string& header, const std::string&
-    // line) {
+    // static bool checkIfHeader(const std::string& header, const std::string& line) {
     //     if (header.size() != line.size()) return false;
     //     for (std::size_t i = 0; i != line.size(); ++i) {
     //         if (header[i] != line[i]) return false;
@@ -222,11 +209,9 @@ class Engine {
     //     return true;
     // }
 
-    // static Engine softbody(EntityManager& entities, const Vector2<std::size_t>&
-    // size,
-    //                        const Vec2& simPos, float gravity, float gap, float
-    //                        springConst, float dampFact, sf::Color color =
-    //                        sf::Color::Yellow) {
+    // static Engine softbody(EntityManager& entities, const Vector2<std::size_t>& size,
+    //                        const Vec2& simPos, float gravity, float gap, float springConst,
+    //                        float dampFact, sf::Color color = sf::Color::Yellow) {
     //     Engine sim  = Engine(entities);
     //     sim.gravity = gravity;
 
@@ -247,26 +232,20 @@ class Engine {
     //             if (x < size.x - 1) {
     //                 if (y < size.y - 1) {
     //                     addSpring({springConst, dampFact,
-    //                                         std::numbers::sqrt2 *
-    //                                         static_cast<double>(gap), p,
-    //                                         PointId{x + 1 + (y + 1) *
-    //                                         size.x}}); // down right
+    //                                std::numbers::sqrt2 * static_cast<double>(gap), p,
+    //                                PointId{x + 1 + (y + 1) * size.x}}); // down right
     //                 }
     //                 addSpring(
-    //                     {springConst, dampFact, gap, p, PointId{x + 1 +
-    //                     (y)*size.x}}); // right
+    //                     {springConst, dampFact, gap, p, PointId{x + 1 + (y)*size.x}}); // right
     //             }
     //             if (y < size.y - 1) {
     //                 if (x > 0) {
     //                     addSpring({springConst, dampFact,
-    //                                         std::numbers::sqrt2 *
-    //                                         static_cast<double>(gap), p,
-    //                                         PointId{x - 1 + (y + 1) *
-    //                                         size.x}}); // down left
+    //                                std::numbers::sqrt2 * static_cast<double>(gap), p,
+    //                                PointId{x - 1 + (y + 1) * size.x}}); // down left
     //                 }
     //                 addSpring(
-    //                     {springConst, dampFact, gap, p, PointId{x + (y + 1) *
-    //                     size.x}}); // down
+    //                     {springConst, dampFact, gap, p, PointId{x + (y + 1) * size.x}}); // down
     //             }
     //         }
     //     }

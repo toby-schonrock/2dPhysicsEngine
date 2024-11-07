@@ -47,4 +47,4 @@ struct Spring {
     }
 };
 
-using SpringId = Index<Spring>;
+using SpringId = Ref<Spring>;

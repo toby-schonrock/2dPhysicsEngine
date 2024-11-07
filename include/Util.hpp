@@ -2,7 +2,6 @@
 
 #include "fundamentals/StableVector.hpp"
 #include "fundamentals/Vector2.hpp"
-#include <sstream>
 
 template <typename T>
 inline void safeStreamRead(std::istream& ss, T& value) {
@@ -18,7 +17,7 @@ std::istream& operator>>(std::istream& is, Vector2<T>& v) {
 }
 
 template <Vectorisable T>
-std::istream& operator>>(std::istream& is, Index<T>& i) {
+std::istream& operator>>(std::istream& is, Ref<T>& i) {
     safeStreamRead(is, i.id);
     return is;
 }

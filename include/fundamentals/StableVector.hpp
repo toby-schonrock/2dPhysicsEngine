@@ -1,106 +1,122 @@
 #pragma once
 
+#include <algorithm>
 #include <iostream>
 #include <map>
-#include <stdexcept>
+#include <queue>
 #include <vector>
 
-template <typename>
+struct DefRefType;
+
+template <typename, typename>
 class PepperedVector;
 
-template <typename>
+template <typename, typename>
 class CompactMap;
 
-template <typename T>
-struct Index {
+template <typename T, typename RefType = DefRefType>
+struct Ref {
   private:
-    std::size_t id    = 0;
-    constexpr Index() = default;
-    explicit Index(std::size_t id_) : id(std::move(id_)) {}
-    explicit         operator std::size_t() const { return id; }
-    explicit         operator long long() const { return static_cast<long long>(id); }
-    constexpr Index& operator+=(const Index& obj) {
+    std::size_t id  = 0;
+    constexpr Ref() = default;
+    explicit Ref(std::size_t id_) : id(std::move(id_)) {}
+    explicit       operator std::size_t() const { return id; }
+    explicit       operator long long() const { return static_cast<long long>(id); }
+    auto           operator<=>(const Ref& obj) const = default;
+    constexpr Ref& operator+=(const Ref& obj) {
         id += obj.id;
         return *this;
     }
-    constexpr Index& operator-=(const Index& obj) {
+    constexpr Ref& operator-=(const Ref& obj) {
         id -= obj.id;
         return *this;
     }
-    constexpr friend Index operator+(Index lhs, const Index& rhs) { return lhs += rhs; }
-    constexpr friend Index operator-(Index lhs, const Index& rhs) { return lhs -= rhs; }
-    constexpr Index&       operator++() {
+    constexpr friend Ref operator+(Ref lhs, const Ref& rhs) { return lhs += rhs; }
+    constexpr friend Ref operator-(Ref lhs, const Ref& rhs) { return lhs -= rhs; }
+    constexpr Ref&       operator++() {
         ++id;
         return *this;
     }
-    constexpr Index& operator--() {
+    constexpr Ref& operator--() {
         --id;
         return *this;
     }
-    friend class PepperedVector<T>;
-    friend class CompactMap<T>;
+    friend class PepperedVector<T, RefType>;
+    friend class CompactMap<T, RefType>;
 
   public:
-    auto                 operator<=>(const Index& obj) const = default;
-    friend std::ostream& operator<<(std::ostream& os, const Index<T>& i) { return os << i.id; }
+    Ref(const Ref& obj)                            = default; // copy constructor
+    Ref&                 operator=(const Ref& obj) = default; // copy assignment operator
+    bool                 operator==(const Ref& obj) const { return id == obj.id; };
+    friend std::ostream& operator<<(std::ostream& os, const Ref& i) { return os << i.id; }
 };
 
-template <typename T> // consider templating by iterator return type
+template <typename T, typename RefType> // consider templating by iterator return type
 class IterableMap {
   public:
+    using Ref = Ref<T, RefType>;
     struct Elem {
-        Index<T> ind;
-        T        obj;
+        Ref ind;
+        T   obj;
     };
-    IterableMap()                                                  = default;
-    virtual ~IterableMap()                                         = default;
-    IterableMap(const IterableMap& other)                          = delete;
-    IterableMap&               operator=(const IterableMap& other) = delete;
-    virtual Index<T>           add(const T& elem);
-    virtual void               rem(const Index<T>& ind);
-    virtual void               rem(const std::vector<Index<T>>& ind);
+    IterableMap()                                    = default;
+    virtual ~IterableMap()                           = default;
+    IterableMap(const IterableMap& other)            = delete;
+    IterableMap& operator=(const IterableMap& other) = delete;
+    virtual Ref  add(const T& elem);
+    virtual void rem(const Ref& ind);
+    template <std::ranges::forward_range R>
+        requires std::is_same_v<std::ranges::range_value_t<R>, Ref>
+    void                       rem(const R&& range);
     [[nodiscard]] virtual Elem front() const;
     [[nodiscard]] virtual Elem back() const;
-    [[nodiscard]] virtual bool contains(const Index<T>& ind) const;
+    [[nodiscard]] virtual bool contains(const Ref& ind) const;
     [[nodiscard]] virtual bool empty() const;
     virtual void               reserve(std::size_t n);
 
-    [[nodiscard]] virtual T&       operator[](const Index<T>& ind);
-    [[nodiscard]] virtual const T& operator[](const Index<T>& ind) const;
+    [[nodiscard]] virtual T&       operator[](const Ref& ind);
+    [[nodiscard]] virtual const T& operator[](const Ref& ind) const;
 };
 
-template <typename T>
-class PepperedVector : IterableMap<T> {
+template <typename T, typename RefType = DefRefType>
+class PepperedVector : IterableMap<T, RefType> {
   private:
-    using Elem = IterableMap<T>::Elem;
+    using Ref  = IterableMap<T, RefType>::Ref;
+    using Elem = IterableMap<T, RefType>::Elem;
     struct ElemExists {
         bool isDeleted;
         Elem elem;
     };
-    std::vector<ElemExists> vec;
+    std::vector<ElemExists>                                                               vec;
+    std::priority_queue<std::size_t, std::vector<std::size_t>, std::greater<std::size_t>> queue;
 
   public:
-    // PepperedVector& operator=(const PepperedVector& other) = default;
-    // if you do not store the return value you will only be able to retrive/delete this element
-    // through iteration
-    Index<T> add(const T& elem)
-        override { // TODO storing deleted in stack and refilling the holes (order not important)
-        Index<T> ind = Index<T>(vec.size());
-        vec.emplace_back(false, Elem(ind, elem));
+    // store the return value or you will only be able to retrieve/delete this element through
+    // iteration
+    Ref add(const T& elem) override {
+        Ref ind;
+        if (!queue.empty()) { // if hole can be filled
+            ind = Ref(queue.top());
+            queue.pop();
+            vec[ind.id] = {false, Elem(ind, elem)};
+        } else { // back
+            ind = Ref(vec.size());
+            vec.emplace_back(false, Elem(ind, elem));
+        }
         return ind;
     }
-    // deletion does not change underyling array so feel free to delete while iterating over
-    // PepperedVector
-    void rem(const Index<T>& ind) override {
-        if (ind.id < 0 || ind.id >= vec.size() || vec[ind.id].isDeleted)
-            throw std::logic_error("Tried to delete Element in PepperedVector that doesn't exist "
-                                   "or was already deleted");
-        vec[ind.id].isDeleted = true;
+    // deletion does not change underyling array so can delete while iterating
+    void rem(const Ref& ind) override {
+        vec.at(ind.id).isDeleted = true;
+        queue.push(ind.id);
     }
 
-    void rem(const std::vector<Index<T>>& ind) override {
-        for (auto i: ind) {
-            rem(i);
+    template <std::ranges::forward_range R>
+        requires std::is_same_v<std::ranges::range_value_t<R>, Ref>
+    void rem(R&& range) { // std::priority_queue::push_range doesn't exist yet :(
+        // std::ranges::for_each(range, &this->rem);
+        for (auto r: range) {
+            rem(r);
         }
     }
 
@@ -108,26 +124,17 @@ class PepperedVector : IterableMap<T> {
     [[nodiscard]] Elem back() const override { return *(--(this->cend())); };
 
     // checks if index still references a valid element
-    [[nodiscard]] bool contains(const Index<T>& ind) const override {
+    [[nodiscard]] bool contains(const Ref& ind) const override {
         if (ind.id < 0 || ind.id >= vec.size()) return false;
         return !vec[ind.id].isDeleted;
     }
 
-    [[nodiscard]] bool empty() const override { // TODO potentialy faster with stack (check
-                                                // stack.size() vs vec.size()) sad cause O(n) rn
-        bool empty = true;
-        for (const auto& v: vec) {
-            if (!v.isDeleted) {
-                empty = false;
-            }
-        }
-        return empty;
-    }
+    [[nodiscard]] bool empty() const override { return vec.size() - queue.size() != 0; }
 
     void reserve(std::size_t n) override { vec.reserve(n); }
 
-    [[nodiscard]] T&       operator[](const Index<T>& ind) override { return vec[ind.id].elem.obj; }
-    [[nodiscard]] const T& operator[](const Index<T>& ind) const override {
+    [[nodiscard]] T&       operator[](const Ref& ind) override { return vec[ind.id].elem.obj; }
+    [[nodiscard]] const T& operator[](const Ref& ind) const override {
         return vec[ind.id].elem.obj;
     }
 
@@ -138,6 +145,7 @@ class PepperedVector : IterableMap<T> {
         using pointer         = Elem*; // or also value_type*
         using reference       = Elem&; // or also value_type&
 
+        // using VecIt = std::vector<>;
         using VecIt = std::vector<ElemExists>::iterator;
         Iterator()  = default;
         Iterator(const PepperedVector* vec, VecIt it) : vec(vec), it(it) {}
@@ -192,9 +200,7 @@ class PepperedVector : IterableMap<T> {
 
         using VecIt     = std::vector<ElemExists>::const_iterator;
         ConstIterator() = default;
-        ConstIterator(const PepperedVector* vec, VecIt it) : vec(vec), it(it) {
-            std::cout << "const it made!";
-        }
+        ConstIterator(const PepperedVector* vec, VecIt it) : vec(vec), it(it) {}
         ConstIterator& operator=(const ConstIterator& other) {
             vec = other.vec;
             it  = other.it;
@@ -248,7 +254,7 @@ class PepperedVector : IterableMap<T> {
   public:
     Iterator begin() {
         auto beg = vec.begin();
-        auto it  = Iterator(this, beg);
+        auto it  = Iterator(this, vec.begin());
         if (beg->isDeleted) ++it;
         return it;
     }
@@ -259,6 +265,8 @@ class PepperedVector : IterableMap<T> {
         } while (end->isDeleted && end != vec.begin());
         return {this, ++end}; // end is out of bounds
     }
+    ConstIterator begin() const { return cbegin(); }
+    ConstIterator end() const { return cend(); }
     ConstIterator cbegin() const {
         auto beg = vec.cbegin();
         auto it  = ConstIterator(this, beg);
@@ -274,31 +282,28 @@ class PepperedVector : IterableMap<T> {
     }
 };
 
-template <typename T>
-class CompactMap : IterableMap<T> {
+template <typename T, typename RefType = DefRefType>
+class CompactMap : IterableMap<T, RefType> {
   private:
-    using Elem = IterableMap<T>::Elem;
+    using Elem = IterableMap<T, RefType>::Elem;
+    using Ref  = IterableMap<T, RefType>::Ref;
     std::vector<Elem>                  vec{};
     std::map<std::size_t, std::size_t> map{};
-    Index<T>                           nextInd{};
+    Ref                                nextInd{};
 
   public:
     // if you do not store the return value you will only be able to retrive/delete this element
     // through iteration
-    Index<T> add(const T& elem) override {
+    Ref add(const T& elem) override {
         map[nextInd.id] = vec.size();
-        Index<T> ind{nextInd};
+        Ref ind{nextInd};
         vec.emplace_back(ind, elem);
         ++nextInd;
         return ind;
     }
     // deletion changes underyling array and therefore invalidates iterators-pointers
-    void rem(const Index<T>& ind) override {
-        auto find = map.find(ind.id);
-        if (find == map.end())
-            throw std::logic_error("Tried to delete Element in CompactVector that doesn't exist");
-
-        auto delIndex = find->second;
+    void rem(const Ref& ind) override {
+        auto delIndex = map.at(ind.id);
 
         // swap elem to be deleted with last elem
         map[vec.back().ind.id] = delIndex;
@@ -309,34 +314,45 @@ class CompactMap : IterableMap<T> {
         vec.pop_back();
     }
     // deletion changes underyling array and therefore invalidates iterators-pointers
-    void rem(const std::vector<Index<T>>& inds) override { // TODO actually make more efficient
-        for (auto i: inds) {
-            rem(i);
+    template <std::ranges::forward_range R>
+        requires std::is_same_v<std::ranges::range_value_t<R>, Ref>
+    void rem(R&& range) {
+        auto back = --vec.end();
+        // TODO figure out for each here cause idk ^^ that breaks it
+        for (auto ind: range) {
+            auto delIndex     = map.at(ind.id);
+            map[back->ind.id] = delIndex;
+            vec[delIndex]     = *back;
+            --back;
+            map.erase(ind.id);
         }
+        vec.erase(++back, vec.end());
     }
 
     [[nodiscard]] Elem front() const override { return vec.front(); };
     [[nodiscard]] Elem back() const override { return vec.back(); };
 
     // checks if index still references a valid element
-    [[nodiscard]] bool contains(const Index<T>& ind) const override { return map.contains(ind.id); }
+    [[nodiscard]] bool contains(const Ref& ind) const override { return map.contains(ind.id); }
 
     [[nodiscard]] bool empty() const override { return vec.empty(); }
 
     void reserve(std::size_t n) override { vec.reserve(n); }
 
     // breaks if exists(ind) == false
-    [[nodiscard]] T& operator[](const Index<T>& ind) override { return vec[map.at(ind.id)].obj; }
-    [[nodiscard]] const T& operator[](const Index<T>& ind) const override {
+    [[nodiscard]] T&       operator[](const Ref& ind) override { return vec[map.at(ind.id)].obj; }
+    [[nodiscard]] const T& operator[](const Ref& ind) const override {
         return vec[map.at(ind.id)].obj;
     }
 
   public:
     std::vector<Elem>::iterator begin() { return vec.begin(); }
     std::vector<Elem>::iterator end() { return vec.end(); }
+    auto                        begin() const { return vec.cbegin(); }
+    auto                        end() const { return vec.cend(); }
     auto                        cbegin() const { return vec.cbegin(); }
     auto                        cend() const { return vec.cend(); }
 };
 
-template <typename T>
-using StableVector = PepperedVector<T>;
+template <typename T, typename RefType = DefRefType>
+using StableVector = CompactMap<T, RefType>;

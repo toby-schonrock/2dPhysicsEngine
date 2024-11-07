@@ -119,4 +119,4 @@ class Polygon {
     }
 };
 
-using PolyId = Index<Polygon>;
+using PolyId = Ref<Polygon>;

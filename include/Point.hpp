@@ -43,4 +43,4 @@ struct Point {
     }
 };
 
-using PointId = Index<Point>;
+using PointId = Ref<Point>;
