@@ -1,0 +1,8 @@
+.cache
+.vscode
+compile_commands.json
+CMakeCache.txt
+CMakeFiles
+build
+.clang-format
+.clang-tidy
