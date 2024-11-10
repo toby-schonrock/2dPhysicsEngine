@@ -63,4 +63,8 @@ $CMAKE -S . -B $BUILD_DIR $COMPILER_OPTIONS -DCMAKE_BUILD_TYPE=$TYPE
 
 $CMAKE --build $BUILD_DIR -- $GENERATOR_OPTIONS
 
-cd $BUILD_DIR
+## copy compile_commands.json for ease
+cp $BUILD_DIR/compile_commands.json compile_commands.json
+
+## run tests
+GTEST_COLOR=1 ctest --test-dir $BUILD_DIR --output-on-failure -j12

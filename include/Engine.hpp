@@ -47,12 +47,12 @@ class Engine {
         }
     }
 
-    void addPoint(const Point& p) { points.add(p); }
+    void addPoint(const Point& p) { points.insert(p); }
 
-    void addSpring(const Spring& s) { springs.add(s); }
+    void addSpring(const Spring& s) { springs.insert(s); }
 
     void rmvPoint(PointId pos) {
-        points.rem(pos);
+        points.erase(pos);
 
         // can be replace with ranges algo
         std::vector<SpringId> remIds;
@@ -61,10 +61,10 @@ class Engine {
                 remIds.push_back(spring.ind);
             }
         }
-        springs.rem(remIds);
+        springs.erase(remIds);
     }
 
-    void rmvSpring(SpringId pos) { springs.rem(pos); }
+    void rmvSpring(SpringId pos) { springs.erase(pos); }
 
     std::pair<PointId, double> findClosestPoint(const Vec2 pos) const { //
         if (points.empty()) throw std::logic_error("Finding closest point with no points?!? ;)");

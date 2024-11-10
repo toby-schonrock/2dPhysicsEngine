@@ -15,9 +15,3 @@ std::istream& operator>>(std::istream& is, Vector2<T>& v) {
     safeStreamRead(is, v.y);
     return is;
 }
-
-template <Vectorisable T>
-std::istream& operator>>(std::istream& is, Ref<T>& i) {
-    safeStreamRead(is, i.id);
-    return is;
-}

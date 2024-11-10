@@ -1,10 +1,10 @@
 #pragma once
 
-#include <algorithm>
 #include <iostream>
-#include <map>
 #include <queue>
 #include <vector>
+
+#include "absl/container/flat_hash_map.h"
 
 struct DefRefType;
 
@@ -49,51 +49,28 @@ struct Ref {
     Ref&                 operator=(const Ref& obj) = default; // copy assignment operator
     bool                 operator==(const Ref& obj) const { return id == obj.id; };
     friend std::ostream& operator<<(std::ostream& os, const Ref& i) { return os << i.id; }
+    // friend std::ostream& operator>>(const Ref& i, std::istream& is) { return i.id >> is; }
 };
 
-template <typename T, typename RefType> // consider templating by iterator return type
-class IterableMap {
-  public:
+template <typename T, typename RefType = DefRefType>
+class PepperedVector {
+  private:
     using Ref = Ref<T, RefType>;
     struct Elem {
         Ref ind;
         T   obj;
     };
-    IterableMap()                                    = default;
-    virtual ~IterableMap()                           = default;
-    IterableMap(const IterableMap& other)            = delete;
-    IterableMap& operator=(const IterableMap& other) = delete;
-    virtual Ref  add(const T& elem);
-    virtual void rem(const Ref& ind);
-    template <std::ranges::forward_range R>
-        requires std::is_same_v<std::ranges::range_value_t<R>, Ref>
-    void                       rem(const R&& range);
-    [[nodiscard]] virtual Elem front() const;
-    [[nodiscard]] virtual Elem back() const;
-    [[nodiscard]] virtual bool contains(const Ref& ind) const;
-    [[nodiscard]] virtual bool empty() const;
-    virtual void               reserve(std::size_t n);
-
-    [[nodiscard]] virtual T&       operator[](const Ref& ind);
-    [[nodiscard]] virtual const T& operator[](const Ref& ind) const;
-};
-
-template <typename T, typename RefType = DefRefType>
-class PepperedVector : IterableMap<T, RefType> {
-  private:
-    using Ref  = IterableMap<T, RefType>::Ref;
-    using Elem = IterableMap<T, RefType>::Elem;
     struct ElemExists {
         bool isDeleted;
         Elem elem;
     };
-    std::vector<ElemExists>                                                               vec;
-    std::priority_queue<std::size_t, std::vector<std::size_t>, std::greater<std::size_t>> queue;
+    std::vector<ElemExists>                                                               vec{};
+    std::priority_queue<std::size_t, std::vector<std::size_t>, std::greater<std::size_t>> queue{};
 
   public:
     // store the return value or you will only be able to retrieve/delete this element through
     // iteration
-    Ref add(const T& elem) override {
+    Ref insert(const T& elem) {
         Ref ind;
         if (!queue.empty()) { // if hole can be filled
             ind = Ref(queue.top());
@@ -106,37 +83,39 @@ class PepperedVector : IterableMap<T, RefType> {
         return ind;
     }
     // deletion does not change underyling array so can delete while iterating
-    void rem(const Ref& ind) override {
+    void erase(const Ref& ind) {
         vec.at(ind.id).isDeleted = true;
         queue.push(ind.id);
     }
 
     template <std::ranges::forward_range R>
         requires std::is_same_v<std::ranges::range_value_t<R>, Ref>
-    void rem(R&& range) { // std::priority_queue::push_range doesn't exist yet :(
-        // std::ranges::for_each(range, &this->rem);
+    void erase(R&& range) { // std::priority_queue::push_range doesn't exist yet :(
+                            // std::ranges::for_each(range, &this->rem);
         for (auto r: range) {
-            rem(r);
+            erase(r);
         }
     }
 
-    [[nodiscard]] Elem front() const override { return *(this->cbegin()); };
-    [[nodiscard]] Elem back() const override { return *(--(this->cend())); };
+    [[nodiscard]] Elem front() const { return *(this->cbegin()); };
+    [[nodiscard]] Elem back() const { return *(--(this->cend())); };
 
     // checks if index still references a valid element
-    [[nodiscard]] bool contains(const Ref& ind) const override {
+    [[nodiscard]] bool contains(const Ref& ind) const {
         if (ind.id < 0 || ind.id >= vec.size()) return false;
         return !vec[ind.id].isDeleted;
     }
 
-    [[nodiscard]] bool empty() const override { return vec.size() - queue.size() != 0; }
-
-    void reserve(std::size_t n) override { vec.reserve(n); }
-
-    [[nodiscard]] T&       operator[](const Ref& ind) override { return vec[ind.id].elem.obj; }
-    [[nodiscard]] const T& operator[](const Ref& ind) const override {
-        return vec[ind.id].elem.obj;
+    [[nodiscard]] std::size_t size() const {
+        return vec.size() - queue.size();
     }
+
+    [[nodiscard]] bool empty() const { return size() == 0; }
+
+    void reserve(std::size_t n) { vec.reserve(n); }
+
+    [[nodiscard]] T&       operator[](const Ref& ind) { return vec[ind.id].elem.obj; }
+    [[nodiscard]] const T& operator[](const Ref& ind) const { return vec[ind.id].elem.obj; }
 
   private:
     struct Iterator {
@@ -195,8 +174,8 @@ class PepperedVector : IterableMap<T, RefType> {
     struct ConstIterator {
         using difference_type = std::ptrdiff_t;
         using value_type      = Elem;
-        using pointer         = Elem*; // or also value_type*
-        using reference       = Elem&; // or also value_type&
+        using pointer         = const Elem*; // or also value_type*
+        using reference       = const Elem&; // or also value_type&
 
         using VecIt     = std::vector<ElemExists>::const_iterator;
         ConstIterator() = default;
@@ -207,8 +186,8 @@ class PepperedVector : IterableMap<T, RefType> {
             return *this;
         };
 
-        const Elem&   operator*() const { return ConstIterator::it->elem; }
-        const pointer operator->() { return &(ConstIterator::it->elem); }
+        reference operator*() const { return ConstIterator::it->elem; }
+        pointer   operator->() { return &(ConstIterator::it->elem); }
 
         ConstIterator& operator++() { // Prefix increment
             do {
@@ -283,29 +262,31 @@ class PepperedVector : IterableMap<T, RefType> {
 };
 
 template <typename T, typename RefType = DefRefType>
-class CompactMap : IterableMap<T, RefType> {
+class CompactMap {
   private:
-    using Elem = IterableMap<T, RefType>::Elem;
-    using Ref  = IterableMap<T, RefType>::Ref;
-    std::vector<Elem>                  vec{};
-    std::map<std::size_t, std::size_t> map{};
-    Ref                                nextInd{};
+    using Ref = Ref<T, RefType>;
+    struct Elem {
+        Ref ind;
+        T   obj;
+    };
+    std::vector<Elem>                             vec{};
+    absl::flat_hash_map<std::size_t, std::size_t> map{};
+    Ref                                           nextInd{};
 
   public:
     // if you do not store the return value you will only be able to retrive/delete this element
     // through iteration
-    Ref add(const T& elem) override {
+    Ref insert(const T& elem) {
         map[nextInd.id] = vec.size();
         Ref ind{nextInd};
         vec.emplace_back(ind, elem);
         ++nextInd;
         return ind;
     }
-    // deletion changes underyling array and therefore invalidates iterators-pointers
-    void rem(const Ref& ind) override {
+    // deletion changes underyling array and therefore invalidates iterators/pointers
+    void erase(const Ref& ind) {
         auto delIndex = map.at(ind.id);
 
-        // swap elem to be deleted with last elem
         map[vec.back().ind.id] = delIndex;
         vec[delIndex]          = vec.back();
 
@@ -316,7 +297,7 @@ class CompactMap : IterableMap<T, RefType> {
     // deletion changes underyling array and therefore invalidates iterators-pointers
     template <std::ranges::forward_range R>
         requires std::is_same_v<std::ranges::range_value_t<R>, Ref>
-    void rem(R&& range) {
+    void erase(R&& range) {
         auto back = --vec.end();
         // TODO figure out for each here cause idk ^^ that breaks it
         for (auto ind: range) {
@@ -329,23 +310,17 @@ class CompactMap : IterableMap<T, RefType> {
         vec.erase(++back, vec.end());
     }
 
-    [[nodiscard]] Elem front() const override { return vec.front(); };
-    [[nodiscard]] Elem back() const override { return vec.back(); };
-
-    // checks if index still references a valid element
-    [[nodiscard]] bool contains(const Ref& ind) const override { return map.contains(ind.id); }
-
-    [[nodiscard]] bool empty() const override { return vec.empty(); }
-
-    void reserve(std::size_t n) override { vec.reserve(n); }
-
-    // breaks if exists(ind) == false
-    [[nodiscard]] T&       operator[](const Ref& ind) override { return vec[map.at(ind.id)].obj; }
-    [[nodiscard]] const T& operator[](const Ref& ind) const override {
+    [[nodiscard]] Elem        front() const { return vec.front(); };
+    [[nodiscard]] Elem        back() const { return vec.back(); };
+    [[nodiscard]] bool        contains(const Ref& ind) const { return map.contains(ind.id); }
+    [[nodiscard]] std::size_t size() const { return vec.size(); }
+    [[nodiscard]] bool        empty() const { return vec.empty(); }
+    void                      reserve(std::size_t n) { vec.reserve(n); }
+    [[nodiscard]] T&          operator[](const Ref& ind) {
         return vec[map.at(ind.id)].obj;
-    }
+    } // TODO make map.at debug only
+    [[nodiscard]] const T& operator[](const Ref& ind) const { return vec[map.at(ind.id)].obj; }
 
-  public:
     std::vector<Elem>::iterator begin() { return vec.begin(); }
     std::vector<Elem>::iterator end() { return vec.end(); }
     auto                        begin() const { return vec.cbegin(); }

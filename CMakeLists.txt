@@ -18,12 +18,22 @@ else()
   string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -fsanitize=address,undefined,leak")
 endif()
 
+include(CTest)
+add_subdirectory(ext/abseil-cpp)
+add_subdirectory(ext/googletest)
 
+# add_library(physics_envy INTERFACE)
+# target_include_directories(physics_envy INTERFACE /include)
+# target_link_libraries(physics_envy INTERFACE absl::flat_hash_map)
 
-if(PROJECT_IS_TOP_LEVEL)
-  add_executable(physics_envy main.cpp)
-  target_include_directories(physics_envy PRIVATE /include)
-else()
-  add_library(physics-envy INTERFACE)
-  target_include_directories(physics_envy INTERFACE /include)
+if(BUILD_TESTING)
+  add_executable(tests tests/test.cpp)
+  target_include_directories(tests PRIVATE include)
+  target_link_libraries(tests PRIVATE GTest::gtest_main absl::flat_hash_map)
+
+  include(GoogleTest)
+  gtest_discover_tests(tests)
 endif()
+
+# if(NOT PROJECT_IS_TOP_LEVEL)
+# endif()

@@ -33,13 +33,14 @@ struct Spring {
                   << ' ' << s.p2;
     }
 
+    // TODO reading and writing of refs needs fixing
     // create spring from string stream
     friend std::istream& operator>>(std::istream& is, Spring& s) {
         safeStreamRead(is, s.springConst);
         safeStreamRead(is, s.naturalLength);
         safeStreamRead(is, s.dampFact);
-        safeStreamRead(is, s.p1);
-        safeStreamRead(is, s.p2);
+        // safeStreamRead(is, s.p1);
+        // safeStreamRead(is, s.p2);
         if (is.good()) {
             throw std::runtime_error("To many columns for a spring - file invalid");
         }
