@@ -1,6 +1,8 @@
 #pragma once
 
-#include "fundamentals/Vector2.hpp"
+#include "details/Vector2.hpp"
+
+namespace physenv {
 
 class Edge {
   private:
@@ -60,3 +62,5 @@ class Edge {
         return (pos.x - p1_.x) / diff_.x * diff_.y + p1_.y > pos.y;
     }
 };
+
+} // namespace physenv

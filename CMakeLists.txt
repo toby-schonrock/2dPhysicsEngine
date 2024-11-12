@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(physics_envy)
+project(physenv)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # makes cmake produce compile_commands.json
 set(CMAKE_CXX_STANDARD 20)
@@ -31,9 +31,9 @@ endif()
 
 add_subdirectory(ext/abseil-cpp)
 
-add_library(physics_envy INTERFACE)
-target_include_directories(physics_envy INTERFACE ./include)
-target_link_libraries(physics_envy INTERFACE absl::flat_hash_map)
-target_precompile_headers(physics_envy INTERFACE [["absl/container/flat_hash_map.h"]]) # prevents changes to physics_envy requiring abseil to be recompiled
+add_library(physenv INTERFACE)
+target_include_directories(physenv INTERFACE ./include)
+target_link_libraries(physenv INTERFACE absl::flat_hash_map)
+target_precompile_headers(physenv INTERFACE [["absl/container/flat_hash_map.h"]]) # prevents changes to physenv requiring abseil to be recompiled
 
 add_subdirectory(tests)

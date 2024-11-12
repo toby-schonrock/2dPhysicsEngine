@@ -2,8 +2,9 @@
 
 #include "Edge.hpp"
 #include "Point.hpp"
-#include "fundamentals/Vector2.hpp"
 #include <vector>
+
+namespace physenv {
 
 class Polygon {
   private:
@@ -119,4 +120,6 @@ class Polygon {
     }
 };
 
-using PolyRef = Ref<Polygon>;
+using PolyRef = details::Ref<Polygon>;
+
+}

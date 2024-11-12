@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Util.hpp"
-#include "fundamentals/Vector2.hpp"
+#include "details/StableVector.hpp"
+
+namespace physenv {
 
 struct Point {
   public:
@@ -43,4 +45,6 @@ struct Point {
     }
 };
 
-using PointRef = Ref<Point>;
+using PointRef = details::Ref<Point>;
+
+} // namespace physenv

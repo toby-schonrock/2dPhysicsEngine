@@ -1,12 +1,15 @@
 #pragma once
 
-#include <iostream>
 #include <queue>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
 
-struct DefRefType;
+namespace physenv {
+
+namespace details {
+
+struct DefRefTag;
 
 template <typename, typename>
 class PepperedVector;
@@ -14,7 +17,7 @@ class PepperedVector;
 template <typename, typename>
 class CompactMap;
 
-template <typename T, typename RefType = DefRefType>
+template <typename T, typename RefTag = DefRefTag>
 struct Ref {
   private:
     std::size_t id  = 0;
@@ -41,28 +44,21 @@ struct Ref {
         --id;
         return *this;
     }
-    friend class PepperedVector<T, RefType>;
-    friend class CompactMap<T, RefType>;
-    friend class std::hash<Ref<T, RefType>>;
+    friend class PepperedVector<T, RefTag>;
+    friend class CompactMap<T, RefTag>;
+    friend class std::hash<Ref<T, RefTag>>;
 
   public:
     Ref(const Ref& obj)            = default; // copy constructor
     Ref& operator=(const Ref& obj) = default; // copy assignment operator
     ~Ref()                         = default; // destructor
-    bool                 operator==(const Ref& obj) const { return id == obj.id; }
-    friend std::ostream& operator<<(std::ostream& os, const Ref& i) { return os << i.id; }
-    // friend std::ostream& operator>>(const Ref& i, std::istream& is) { return i.id >> is; }
+    bool operator==(const Ref& obj) const { return id == obj.id; }
 };
 
-template <typename T, typename RefType>
-struct std::hash<Ref<T, RefType>> {
-    std::size_t operator()(const Ref<T, RefType>& ref) const { return std::hash<size_t>{}(ref.id); }
-};
-
-template <typename T, typename RefType = DefRefType>
+template <typename T, typename RefTag = DefRefTag>
 class PepperedVector {
   private:
-    using Ref = Ref<T, RefType>;
+    using Ref = Ref<T, RefTag>;
     struct Elem {
         Ref ind;
         T   obj;
@@ -229,7 +225,7 @@ class PepperedVector {
 
   public:
     [[nodiscard]] Iterator begin() {
-        auto beg = vec.begin();
+        auto     beg = vec.begin();
         Iterator it{this, vec.begin()};
         if (beg->isDeleted) ++it;
         return it;
@@ -258,10 +254,10 @@ class PepperedVector {
     }
 };
 
-template <typename T, typename RefType = DefRefType>
+template <typename T, typename RefTag = DefRefTag>
 class CompactMap {
   private:
-    using Ref = Ref<T, RefType>;
+    using Ref = Ref<T, RefTag>;
     struct Elem {
         Ref ind;
         T   obj;
@@ -330,5 +326,14 @@ class CompactMap {
     [[nodiscard]] auto cend() const { return vec.cend(); }
 };
 
-template <typename T, typename RefType = DefRefType>
-using StableVector = CompactMap<T, RefType>;
+} // namespace details
+
+template <typename T, typename RefTag = details::DefRefTag>
+using StableVector = details::CompactMap<T, RefTag>;
+
+} // namespace physenv
+
+template <typename T, typename RefTag>
+struct std::hash<physenv::details::Ref<T, RefTag>> {
+    std::size_t operator()(const physenv::details::Ref<T, RefTag>& ref) const { return std::hash<size_t>{}(ref.id); }
+};

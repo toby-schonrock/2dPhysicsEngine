@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Point.hpp"
-#include "fundamentals/Vector2.hpp"
+
+namespace physenv {
 
 struct Spring {
     double  springConst;
@@ -29,8 +30,7 @@ struct Spring {
 
     // represent spring as a string and push through stream
     friend std::ostream& operator<<(std::ostream& os, const Spring& s) {
-        return os << s.springConst << ' ' << s.naturalLength << ' ' << s.dampFact << ' ' << s.p1
-                  << ' ' << s.p2;
+        return os << s.springConst << ' ' << s.naturalLength << ' ' << s.dampFact << ' ';
     }
 
     // TODO reading and writing of refs needs fixing
@@ -48,4 +48,6 @@ struct Spring {
     }
 };
 
-using SpringRef = Ref<Spring>;
+using SpringRef = details::Ref<Spring>;
+
+}

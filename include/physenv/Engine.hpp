@@ -3,13 +3,15 @@
 #include <algorithm>
 #include <filesystem>
 
+#include <fstream>
 #include <string>
 #include <vector>
 
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "Spring.hpp"
-#include "fundamentals/Vector2.hpp"
+
+namespace physenv {
 
 static const std::string PointHeaders{"point-id fixed posx posy velx vely mass color(rgba)"};
 static const std::string SpringHeaders =
@@ -176,27 +178,29 @@ class Engine {
 
     void save(std::filesystem::path path, ObjectEnabled enabled) const {
         path.make_preferred();
-        // std::ofstream file{path, std::ios_base::out};
-        // if (!file.is_open()) {
-        //     throw std::runtime_error("Falied to open fstream \n");
-        // }
+        std::ofstream file{path};
+        if (!file.is_open()) {
+            throw std::runtime_error("Falied to open fstream \n");
+        }
 
-        // file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
-        // file << PointHeaders << "\n";
+        file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
+        file << PointHeaders << "\n";
         std::unordered_map<PointRef, std::size_t> tempPointIds;
         if (enabled.points) {
             std::size_t i = 0;
             for (const auto& p: points) {
-                // file << i << ' ' << p.obj << "\n";
+                file << i << ' ' << p.obj << "\n";
                 tempPointIds[p.ind] = i;
-                // tempPointIds.insert(std::make_pair(p.ind, i));
+                tempPointIds.insert(std::make_pair(p.ind, i));
                 ++i;
             }
         }
         // file << SpringHeaders << "\n";
         // if (enabled.springs) {
-        //     for (std::size_t i = 0; i != springs.size(); ++i) {
-        //         file << i << ' ' << springs[i] << "\n";
+        //     std::size_t i = 0;
+        //     for (const auto& s: springs) {
+        //         file << i << ' ' << s << "\n";
+        //         ++i;
         //     }
         // }
         // file << PolyHeaders;
@@ -258,3 +262,5 @@ class Engine {
     //     return sim;
     // }
 };
+
+} // namespace physenv

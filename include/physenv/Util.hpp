@@ -1,7 +1,8 @@
 #pragma once
 
-#include "fundamentals/StableVector.hpp"
-#include "fundamentals/Vector2.hpp"
+#include "details/Vector2.hpp"
+
+namespace physenv {
 
 template <typename T>
 inline void safeStreamRead(std::istream& ss, T& value) {
@@ -9,9 +10,11 @@ inline void safeStreamRead(std::istream& ss, T& value) {
     ss >> value;
 }
 
-template <Vectorisable T>
-std::istream& operator>>(std::istream& is, Vector2<T>& v) {
+template <details::Vectorisable T>
+std::istream& operator>>(std::istream& is, details::Vector2<T>& v) {
     safeStreamRead(is, v.x);
     safeStreamRead(is, v.y);
     return is;
 }
+
+} // namespace physenv

@@ -2,7 +2,7 @@ if(BUILD_TESTING)
     include(CTest)
     add_subdirectory(ext/googletest)
     add_executable(tests test.cpp)
-    target_link_libraries(tests PRIVATE GTest::gtest_main physics_envy)
+    target_link_libraries(tests PRIVATE GTest::gtest_main physenv)
     target_compile_options(tests PRIVATE ${PROJECT_COMPILE_OPTIONS})
 
     include(GoogleTest)

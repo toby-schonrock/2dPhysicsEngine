@@ -2,6 +2,10 @@
 
 #include <vector>
 
+// TODO maybe move out of physenv
+
+namespace physenv::details {
+
 template <typename T>
 class RingBuffer {
   public:
@@ -28,3 +32,5 @@ class RingBuffer {
         v.clear();
     }
 };
+
+} // namespace physenv::details

@@ -4,6 +4,10 @@
 #include <ostream>
 #include <type_traits>
 
+namespace physenv {
+
+namespace details {
+
 template <typename T>
 concept Vectorisable = std::is_arithmetic_v<T>;
 
@@ -22,15 +26,22 @@ class Vector2 {
         return Vector2<U>(static_cast<U>(x), static_cast<U>(y));
     }
 
-    constexpr T       mag() const requires std::is_floating_point_v<T> { return std::hypot(x, y); }
-    constexpr Vector2 norm() const requires std::is_floating_point_v<T> {
+    constexpr T mag() const
+        requires std::is_floating_point_v<T>
+    {
+        return std::hypot(x, y);
+    }
+    constexpr Vector2 norm() const
+        requires std::is_floating_point_v<T>
+    {
         return *this / this->mag();
     }
     constexpr Vector2 abs() const { return {std::abs(x), std::abs(y)}; }
     constexpr T       dot(const Vector2& rhs) const { return x * rhs.x + y * rhs.y; }
     constexpr T       cross(const Vector2& rhs) const { return x * rhs.y - y * rhs.x; }
     constexpr T       distToLine(const Vector2& p1, const Vector2& p2) const
-        requires std::is_floating_point_v<T> {
+        requires std::is_floating_point_v<T>
+    {
         Vector2 line  = p2 - p1;
         Vector2 diff1 = *this - p1;
         if (diff1.dot(line) < 0) return diff1.mag();
@@ -61,7 +72,11 @@ class Vector2 {
     }
 };
 
-using Vec2  = Vector2<double>;
-using Vec2I = Vector2<int>;
-using Vec2U = Vector2<unsigned>;
-using Vec2F = Vector2<float>;
+} // namespace details
+
+using Vec2  = details::Vector2<double>;
+using Vec2I = details::Vector2<int>;
+using Vec2U = details::Vector2<unsigned>;
+using Vec2F = details::Vector2<float>;
+
+} // namespace physenv

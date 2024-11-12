@@ -1,4 +1,4 @@
-#include "physics_envy/Engine.hpp"
+#include "physenv/details/StableVector.hpp"
 #include "gtest/gtest.h"
 #include <ranges>
 
@@ -13,6 +13,8 @@ void equalityCheck(T subj, const std::vector<Q>& vec) { // subj is taken by valu
     EXPECT_EQ(subj.size(), 0);
 }
 
+using namespace physenv::details;
+
 template <typename T>
 class StableVectors : public testing::Test {
   public:
@@ -20,7 +22,6 @@ class StableVectors : public testing::Test {
 };
 
 using TestedTypes = ::testing::Types<PepperedVector<int>, CompactMap<int>>;
-// using TestedTypes = ::testing::Types<PepperedVector<int>>;
 TYPED_TEST_SUITE(StableVectors, TestedTypes);
 
 TYPED_TEST(StableVectors, IsEmptyIntially) { EXPECT_TRUE(this->vec.empty()); }
