@@ -1,9 +1,9 @@
-#include "fundamentals/StableVector.hpp"
+#include "physics_envy/Engine.hpp"
 #include "gtest/gtest.h"
 #include <ranges>
 
 template <typename T, typename Q>
-void equalityCheck(T subj, const std::vector<Q>& vec) { // subj is taken by value
+void equalityCheck(T subj, const std::vector<Q>& vec) { // subj is taken by value 
     EXPECT_EQ(subj.size(), vec.size());
     for (auto v: vec) {
         EXPECT_TRUE(subj.contains(v.first));
@@ -41,10 +41,12 @@ TYPED_TEST(StableVectors, Adding) {
 
 TYPED_TEST(StableVectors, Iterating) {
     auto& vec = this->vec;
-    int   sum{};
 
-    std::ranges::for_each(std::views::iota(0, 10), [&](auto i) { vec.insert(i), i; });
+    for (auto i: std::views::iota(0, 10)) {
+        vec.insert(i);
+    }
 
+    int sum{};
     std::ranges::for_each(vec, [&](const auto& i) {
         EXPECT_EQ(i.obj, vec[i.ind]);
         sum += i.obj;
@@ -80,7 +82,8 @@ TYPED_TEST(StableVectors, Removing) {
 
     for (auto i: std::vector<std::size_t>{7, 4, 3, 5, 5}) {
         vec.erase(curr.at(i).first);
-        curr.erase(curr.begin() + i);
+        curr.erase(curr.begin() + static_cast<signed long long>(i));
+        // curr.erase(curr.begin() + static_cast<signed long long>(i));
     }
     equalityCheck(vec, curr); // curr = 0,1,2,5,6
 
@@ -92,18 +95,18 @@ TYPED_TEST(StableVectors, Removing) {
     std::vector<decltype(newItem)> removes;
     for (auto i: std::vector<std::size_t>{9, 0, 3, 2, 5}) {
         removes.push_back(curr.at(i).first);
-        curr.erase(curr.begin() + i);
+        curr.erase(curr.begin() + static_cast<long long int>(i));
     }
     vec.erase(removes);
     equalityCheck(vec, curr); // cur = 1,2,10,11,12
 
-    for (std::size_t i: std::views::iota(0, 201)) {
+    for (int i: std::views::iota(0, 201)) {
         curr.emplace_back(vec.insert(i), i);
     }
     equalityCheck(vec, curr);
 
-    int sum;
-    std::ranges::for_each(vec, [&](const auto& i) { sum += i.obj; });
+    int sum = std::accumulate(vec.begin(), vec.end(), 0,
+                              [](auto total, const auto& e) { return total += e.obj; });
     EXPECT_EQ(sum, 20136);
 
     removes = {};

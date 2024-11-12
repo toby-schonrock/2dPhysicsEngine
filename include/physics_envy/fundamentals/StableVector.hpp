@@ -19,7 +19,7 @@ struct Ref {
   private:
     std::size_t id  = 0;
     constexpr Ref() = default;
-    explicit Ref(std::size_t id_) : id(std::move(id_)) {}
+    explicit Ref(const std::size_t& id_) : id(id_) {}
     explicit       operator std::size_t() const { return id; }
     explicit       operator long long() const { return static_cast<long long>(id); }
     auto           operator<=>(const Ref& obj) const = default;
@@ -43,13 +43,20 @@ struct Ref {
     }
     friend class PepperedVector<T, RefType>;
     friend class CompactMap<T, RefType>;
+    friend class std::hash<Ref<T, RefType>>;
 
   public:
-    Ref(const Ref& obj)                            = default; // copy constructor
-    Ref&                 operator=(const Ref& obj) = default; // copy assignment operator
-    bool                 operator==(const Ref& obj) const { return id == obj.id; };
+    Ref(const Ref& obj)            = default; // copy constructor
+    Ref& operator=(const Ref& obj) = default; // copy assignment operator
+    ~Ref()                         = default; // destructor
+    bool                 operator==(const Ref& obj) const { return id == obj.id; }
     friend std::ostream& operator<<(std::ostream& os, const Ref& i) { return os << i.id; }
     // friend std::ostream& operator>>(const Ref& i, std::istream& is) { return i.id >> is; }
+};
+
+template <typename T, typename RefType>
+struct std::hash<Ref<T, RefType>> {
+    std::size_t operator()(const Ref<T, RefType>& ref) const { return std::hash<size_t>{}(ref.id); }
 };
 
 template <typename T, typename RefType = DefRefType>
@@ -97,8 +104,8 @@ class PepperedVector {
         }
     }
 
-    [[nodiscard]] Elem front() const { return *(this->cbegin()); };
-    [[nodiscard]] Elem back() const { return *(--(this->cend())); };
+    [[nodiscard]] Elem front() const { return *(this->cbegin()); }
+    [[nodiscard]] Elem back() const { return *(--(this->cend())); }
 
     // checks if index still references a valid element
     [[nodiscard]] bool contains(const Ref& ind) const {
@@ -106,13 +113,13 @@ class PepperedVector {
         return !vec[ind.id].isDeleted;
     }
 
-    [[nodiscard]] std::size_t size() const {
-        return vec.size() - queue.size();
+    [[nodiscard]] std::size_t size() const { return vec.size() - queue.size(); }
+    [[nodiscard]] bool        empty() const { return size() == 0; }
+    void                      reserve(std::size_t n) { vec.reserve(n); }
+    void                      clear() { // invalidates all refs previously made by this object
+        vec.clear();
+        queue = decltype(queue)();
     }
-
-    [[nodiscard]] bool empty() const { return size() == 0; }
-
-    void reserve(std::size_t n) { vec.reserve(n); }
 
     [[nodiscard]] T&       operator[](const Ref& ind) { return vec[ind.id].elem.obj; }
     [[nodiscard]] const T& operator[](const Ref& ind) const { return vec[ind.id].elem.obj; }
@@ -127,15 +134,10 @@ class PepperedVector {
         // using VecIt = std::vector<>;
         using VecIt = std::vector<ElemExists>::iterator;
         Iterator()  = default;
-        Iterator(const PepperedVector* vec, VecIt it) : vec(vec), it(it) {}
-        Iterator& operator=(const Iterator& other) {
-            vec = other.vec;
-            it  = other.it;
-            return *this;
-        };
+        Iterator(const PepperedVector* vec_, VecIt it_) : vec(vec_), it(it_) {}
 
-        reference operator*() const { return it->elem; }
-        pointer   operator->() { return &(it->elem); }
+        [[nodiscard]] reference operator*() const { return it->elem; }
+        [[nodiscard]] pointer   operator->() const { return &(it->elem); }
 
         Iterator& operator++() { // Prefix increment
             do {
@@ -163,8 +165,8 @@ class PepperedVector {
             return tmp;
         }
 
-        friend bool operator==(const Iterator& a, const Iterator& b) { return a.it == b.it; };
-        friend bool operator!=(const Iterator& a, const Iterator& b) { return a.it != b.it; };
+        friend bool operator==(const Iterator& a, const Iterator& b) { return a.it == b.it; }
+        friend bool operator!=(const Iterator& a, const Iterator& b) { return a.it != b.it; }
 
       private:
         const PepperedVector* vec; // has to be pointer to be default initialisable
@@ -179,15 +181,10 @@ class PepperedVector {
 
         using VecIt     = std::vector<ElemExists>::const_iterator;
         ConstIterator() = default;
-        ConstIterator(const PepperedVector* vec, VecIt it) : vec(vec), it(it) {}
-        ConstIterator& operator=(const ConstIterator& other) {
-            vec = other.vec;
-            it  = other.it;
-            return *this;
-        };
+        ConstIterator(const PepperedVector* vec_, VecIt it_) : vec(vec_), it(it_) {}
 
-        reference operator*() const { return ConstIterator::it->elem; }
-        pointer   operator->() { return &(ConstIterator::it->elem); }
+        [[nodiscard]] reference operator*() const { return ConstIterator::it->elem; }
+        [[nodiscard]] pointer   operator->() const { return &(ConstIterator::it->elem); }
 
         ConstIterator& operator++() { // Prefix increment
             do {
@@ -217,10 +214,10 @@ class PepperedVector {
 
         friend bool operator==(const ConstIterator& a, const ConstIterator& b) {
             return a.it == b.it;
-        };
+        }
         friend bool operator!=(const ConstIterator& a, const ConstIterator& b) {
             return a.it != b.it;
-        };
+        }
 
       private:
         const PepperedVector* vec; // has to be pointer to be default initialisable
@@ -231,28 +228,28 @@ class PepperedVector {
     static_assert(std::bidirectional_iterator<ConstIterator>);
 
   public:
-    Iterator begin() {
+    [[nodiscard]] Iterator begin() {
         auto beg = vec.begin();
-        auto it  = Iterator(this, vec.begin());
+        Iterator it{this, vec.begin()};
         if (beg->isDeleted) ++it;
         return it;
     }
-    Iterator end() {
+    [[nodiscard]] Iterator end() {
         auto end = vec.end();
         do {
             --end;
         } while (end->isDeleted && end != vec.begin());
         return {this, ++end}; // end is out of bounds
     }
-    ConstIterator begin() const { return cbegin(); }
-    ConstIterator end() const { return cend(); }
-    ConstIterator cbegin() const {
+    [[nodiscard]] ConstIterator begin() const { return cbegin(); }
+    [[nodiscard]] ConstIterator end() const { return cend(); }
+    [[nodiscard]] ConstIterator cbegin() const {
         auto beg = vec.cbegin();
         auto it  = ConstIterator(this, beg);
         if (beg->isDeleted) ++it;
         return it;
     }
-    ConstIterator cend() const {
+    [[nodiscard]] ConstIterator cend() const {
         auto end = vec.cend();
         do {
             --end;
@@ -310,23 +307,27 @@ class CompactMap {
         vec.erase(++back, vec.end());
     }
 
-    [[nodiscard]] Elem        front() const { return vec.front(); };
-    [[nodiscard]] Elem        back() const { return vec.back(); };
+    [[nodiscard]] Elem        front() const { return vec.front(); }
+    [[nodiscard]] Elem        back() const { return vec.back(); }
     [[nodiscard]] bool        contains(const Ref& ind) const { return map.contains(ind.id); }
     [[nodiscard]] std::size_t size() const { return vec.size(); }
     [[nodiscard]] bool        empty() const { return vec.empty(); }
     void                      reserve(std::size_t n) { vec.reserve(n); }
-    [[nodiscard]] T&          operator[](const Ref& ind) {
-        return vec[map.at(ind.id)].obj;
-    } // TODO make map.at debug only
+    void                      clear() { // invalidates all refs previously made by this object
+        vec.clear();
+        map.clear();
+        nextInd = 0;
+    }
+    // TODO make map.at debug only
+    [[nodiscard]] T&       operator[](const Ref& ind) { return vec[map.at(ind.id)].obj; }
     [[nodiscard]] const T& operator[](const Ref& ind) const { return vec[map.at(ind.id)].obj; }
 
-    std::vector<Elem>::iterator begin() { return vec.begin(); }
-    std::vector<Elem>::iterator end() { return vec.end(); }
-    auto                        begin() const { return vec.cbegin(); }
-    auto                        end() const { return vec.cend(); }
-    auto                        cbegin() const { return vec.cbegin(); }
-    auto                        cend() const { return vec.cend(); }
+    [[nodiscard]] auto begin() { return vec.begin(); }
+    [[nodiscard]] auto end() { return vec.end(); }
+    [[nodiscard]] auto begin() const { return vec.cbegin(); }
+    [[nodiscard]] auto end() const { return vec.cend(); }
+    [[nodiscard]] auto cbegin() const { return vec.cbegin(); }
+    [[nodiscard]] auto cend() const { return vec.cend(); }
 };
 
 template <typename T, typename RefType = DefRefType>

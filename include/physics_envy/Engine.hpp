@@ -11,11 +11,16 @@
 #include "Spring.hpp"
 #include "fundamentals/Vector2.hpp"
 
-extern const std::filesystem::path Previous;
 static const std::string PointHeaders{"point-id fixed posx posy velx vely mass color(rgba)"};
 static const std::string SpringHeaders =
     "spring-id spring-const natural-length damping-factor point1 point2";
 static const std::string PolyHeaders = "polygon-verts: x y ...";
+
+struct ObjectEnabled {
+    bool points;
+    bool springs;
+    bool polygons;
+};
 
 class Engine {
   public:
@@ -24,7 +29,7 @@ class Engine {
     StableVector<Point>   points;
     StableVector<Spring>  springs;
 
-    Engine(double gravity_ = 0) : gravity(gravity_) { std::filesystem::create_directory("sims"); }
+    Engine(double gravity_ = 0) : gravity(gravity_) {}
 
     void simFrame(double deltaTime) {
         // calculate spring force worth doing in parralel
@@ -51,11 +56,11 @@ class Engine {
 
     void addSpring(const Spring& s) { springs.insert(s); }
 
-    void rmvPoint(PointId pos) {
+    void rmvPoint(PointRef pos) {
         points.erase(pos);
 
         // can be replace with ranges algo
-        std::vector<SpringId> remIds;
+        std::vector<SpringRef> remIds;
         for (const auto& spring: springs) {
             if (spring.obj.p1 == pos || spring.obj.p2 == pos) { // delete
                 remIds.push_back(spring.ind);
@@ -64,12 +69,12 @@ class Engine {
         springs.erase(remIds);
     }
 
-    void rmvSpring(SpringId pos) { springs.erase(pos); }
+    void rmvSpring(SpringRef pos) { springs.erase(pos); }
 
-    std::pair<PointId, double> findClosestPoint(const Vec2 pos) const { //
+    std::pair<PointRef, double> findClosestPoint(const Vec2 pos) const { //
         if (points.empty()) throw std::logic_error("Finding closest point with no points?!? ;)");
-        double  closestDist = std::numeric_limits<double>::infinity();
-        PointId closestPos  = points.cbegin()->ind;
+        double   closestDist = std::numeric_limits<double>::infinity();
+        PointRef closestPos  = points.cbegin()->ind;
         for (auto p: points) {
             Vec2   diff = pos - p.obj.pos;
             double dist = diff.x * diff.x + diff.y * diff.y;
@@ -78,13 +83,13 @@ class Engine {
                 closestPos  = p.ind;
             }
         }
-        return std::pair<PointId, double>(closestPos, std::sqrt(closestDist));
+        return std::pair<PointRef, double>(closestPos, std::sqrt(closestDist));
     }
 
-    std::pair<SpringId, double> findClosestSpring(const Vec2 pos) const {
+    std::pair<SpringRef, double> findClosestSpring(const Vec2 pos) const {
         if (springs.empty()) throw std::logic_error("Finding closest spring with no springs?!? ;)");
-        double   closestDist = std::numeric_limits<double>::infinity();
-        SpringId closestPos  = springs.cbegin()->ind;
+        double    closestDist = std::numeric_limits<double>::infinity();
+        SpringRef closestPos  = springs.cbegin()->ind;
         for (auto spring: springs) {
             double dist = pos.distToLine(points[spring.obj.p1].pos, points[spring.obj.p2].pos);
             if (dist < closestDist) {
@@ -92,20 +97,16 @@ class Engine {
                 closestPos  = spring.ind;
             }
         }
-        return std::pair<SpringId, double>(closestPos, std::sqrt(closestDist));
+        return std::pair<SpringRef, double>(closestPos, std::sqrt(closestDist));
     }
 
     // void reset() { load(Previous, true, {true, true, true}, false); }
 
-    // void load(std::filesystem::path path, bool replace, ObjectEnabled enabled,
-    //           bool deleteGraphs = true) {
+    // void load(std::filesystem::path path, bool replace, ObjectEnabled enabled) {
     //     path.make_preferred();
     //     if (replace) {
-    //         if (deleteGraphs) graphs.clear();
     //         points.clear();
-    //         pointVerts.clear();
     //         springs.clear();
-    //         springVerts.clear();
     //         polys.clear();
     //     }
     //     PointId pointOffset = static_cast<PointId>(points.size());
@@ -173,33 +174,38 @@ class Engine {
     //     }
     // }
 
-    // void save(std::filesystem::path path, ObjectEnabled enabled) const {
-    //     path.make_preferred();
-    //     std::ofstream file{path, std::ios_base::out};
-    //     if (!file.is_open()) {
-    //         throw std::runtime_error("Falied to open fstream \n");
-    //     }
+    void save(std::filesystem::path path, ObjectEnabled enabled) const {
+        path.make_preferred();
+        // std::ofstream file{path, std::ios_base::out};
+        // if (!file.is_open()) {
+        //     throw std::runtime_error("Falied to open fstream \n");
+        // }
 
-    //     file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
-    //     file << PointHeaders << "\n";
-    //     if (enabled.points) {
-    //         for (std::size_t i = 0; i != points.size(); ++i) {
-    //             file << i << ' ' << points[i] << "\n";
-    //         }
-    //     }
-    //     file << SpringHeaders << "\n";
-    //     if (enabled.springs) {
-    //         for (std::size_t i = 0; i != springs.size(); ++i) {
-    //             file << i << ' ' << springs[i] << "\n";
-    //         }
-    //     }
-    //     file << PolyHeaders;
-    //     if (enabled.polygons) {
-    //         for (const Polygon& p: polys) {
-    //             if (!p.edges.empty()) file << "\n" << p;
-    //         }
-    //     }
-    // }
+        // file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
+        // file << PointHeaders << "\n";
+        std::unordered_map<PointRef, std::size_t> tempPointIds;
+        if (enabled.points) {
+            std::size_t i = 0;
+            for (const auto& p: points) {
+                // file << i << ' ' << p.obj << "\n";
+                tempPointIds[p.ind] = i;
+                // tempPointIds.insert(std::make_pair(p.ind, i));
+                ++i;
+            }
+        }
+        // file << SpringHeaders << "\n";
+        // if (enabled.springs) {
+        //     for (std::size_t i = 0; i != springs.size(); ++i) {
+        //         file << i << ' ' << springs[i] << "\n";
+        //     }
+        // }
+        // file << PolyHeaders;
+        // if (enabled.polygons) {
+        //     for (const Polygon& p: polys) {
+        //         if (!p.edges.empty()) file << "\n" << p;
+        //     }
+        // }
+    }
 
     // static bool checkIfHeader(const std::string& header, const std::string& line) {
     //     if (header.size() != line.size()) return false;
@@ -228,7 +234,7 @@ class Engine {
 
     //     for (std::size_t x = 0; x != size.x; ++x) {
     //         for (std::size_t y = 0; y != size.y; ++y) {
-    //             PointId p{x + y * size.x};
+    //             PointRef p{x + y * size.x};
     //             if (x < size.x - 1) {
     //                 if (y < size.y - 1) {
     //                     addSpring({springConst, dampFact,

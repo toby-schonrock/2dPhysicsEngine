@@ -6,7 +6,7 @@ USAGE="Usage: $(basename $0) [-v | --verbose] [ gcc | clang ] [ reset | clean | 
 
 CMAKE=cmake
 BUILD=./build
-TYPE=Release
+TYPE=Debug
 COMPILER=gcc
 CLEAN=
 RESET=
@@ -57,6 +57,14 @@ else
   fi
 fi
 
+if command -v ccache > /dev/null 2>&1
+then
+    CACHE="-DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache"
+else
+    echo -e '\033[0;31m'"Consider installing \`ccache\` for extra speed!"'\033[0m' 1>&2
+    CACHE=""
+fi
+
 $CMAKE -S . -B $BUILD_DIR $COMPILER_OPTIONS -DCMAKE_BUILD_TYPE=$TYPE 
 
 [[ -n $CLEAN ]] && $CMAKE --build $BUILD_DIR --target clean
@@ -64,7 +72,7 @@ $CMAKE -S . -B $BUILD_DIR $COMPILER_OPTIONS -DCMAKE_BUILD_TYPE=$TYPE
 $CMAKE --build $BUILD_DIR -- $GENERATOR_OPTIONS
 
 ## copy compile_commands.json for ease
-cp $BUILD_DIR/compile_commands.json compile_commands.json
+rm -f ./compile_commands.json && ln -s $BUILD_DIR/compile_commands.json .
 
 ## run tests
-GTEST_COLOR=1 ctest --test-dir $BUILD_DIR --output-on-failure -j12
+GTEST_COLOR=1 ctest --test-dir $BUILD_DIR/tests --output-on-failure -j

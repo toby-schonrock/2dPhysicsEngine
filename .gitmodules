@@ -1,3 +1,6 @@
 [submodule "ext/abseil-cpp"]
 	path = ext/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
+[submodule "tests/ext/googletest"]
+	path = tests/ext/googletest
+	url = https://github.com/google/googletest.git

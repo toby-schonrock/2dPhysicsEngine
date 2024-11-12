@@ -7,8 +7,8 @@ struct Spring {
     double  springConst;
     double  dampFact;
     double  naturalLength;
-    PointId p1;
-    PointId p2;
+    PointRef p1;
+    PointRef p2;
 
     void springHandler(Point& point1, Point& point2) const {
         Vec2 force = forceCalc(point1, point2);
@@ -48,4 +48,4 @@ struct Spring {
     }
 };
 
-using SpringId = Ref<Spring>;
+using SpringRef = Ref<Spring>;
