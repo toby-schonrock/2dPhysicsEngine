@@ -3,7 +3,7 @@
 #include <ranges>
 
 template <typename T, typename Q>
-void equalityCheck(T subj, const std::vector<Q>& vec) { // subj is taken by value 
+void equalityCheck(T subj, const std::vector<Q>& vec) { // subj is taken by value
     EXPECT_EQ(subj.size(), vec.size());
     for (auto v: vec) {
         EXPECT_TRUE(subj.contains(v.first));
@@ -13,7 +13,7 @@ void equalityCheck(T subj, const std::vector<Q>& vec) { // subj is taken by valu
     EXPECT_EQ(subj.size(), 0);
 }
 
-using namespace physenv::details;
+using namespace physenv;
 
 template <typename T>
 class StableVectors : public testing::Test {
@@ -21,7 +21,7 @@ class StableVectors : public testing::Test {
     T vec;
 };
 
-using TestedTypes = ::testing::Types<PepperedVector<int>, CompactMap<int>>;
+using TestedTypes = ::testing::Types<details::PepperedVector<int>, details::CompactMap<int>>;
 TYPED_TEST_SUITE(StableVectors, TestedTypes);
 
 TYPED_TEST(StableVectors, IsEmptyIntially) { EXPECT_TRUE(this->vec.empty()); }
@@ -116,4 +116,22 @@ TYPED_TEST(StableVectors, Removing) {
     }
     vec.erase(removes);
     EXPECT_EQ(vec.size(), 0);
+}
+
+class EngineTest : testing::Test {
+  public:
+    Engine e = Engine::softbody({5, 5}, {0.0f, 0.0f}, 10.0f, 10.0f, 10.0f, 1.0f);
+};
+
+TEST_F(EngineTest, Construct) {
+    auto e = this->e;
+    ASSERT_EQ(e.points.size(), 25);
+    ASSERT_EQ(e.springs.size(), 72);
+    ASSERT_EQ(e.polys.size(), 2);
+}
+
+TEST_F(EngineTest, Save) {
+    std::filesystem::path p = "eng.csv";
+    std::cout << std::filesystem::current_path() << p << "\n";
+    e.save(p, {true, true, true});
 }

@@ -73,15 +73,16 @@ class PepperedVector {
   public:
     // store the return value or you will only be able to retrieve/delete this element through
     // iteration
-    Ref insert(const T& elem) {
+    template <typename E>
+    Ref insert(E&& elem) { // forwarded
         Ref ind;
         if (!queue.empty()) { // if hole can be filled
             ind = Ref(queue.top());
             queue.pop();
-            vec[ind.id] = {false, Elem(ind, elem)};
+            vec[ind.id] = ElemExists{false, Elem{ind, std::forward<E>(elem)}};
         } else { // back
             ind = Ref(vec.size());
-            vec.emplace_back(false, Elem(ind, elem));
+            vec.emplace_back(false, Elem{ind, std::forward<E>(elem)});
         }
         return ind;
     }
@@ -269,10 +270,11 @@ class CompactMap {
   public:
     // if you do not store the return value you will only be able to retrive/delete this element
     // through iteration
-    Ref insert(const T& elem) {
+    template <typename E>
+    Ref insert(E&& elem) { // forwarded
         map[nextInd.id] = vec.size();
         Ref ind{nextInd};
-        vec.emplace_back(ind, elem);
+        vec.emplace_back(ind, std::forward<E>(elem));
         ++nextInd;
         return ind;
     }
@@ -335,5 +337,7 @@ using StableVector = details::CompactMap<T, RefTag>;
 
 template <typename T, typename RefTag>
 struct std::hash<physenv::details::Ref<T, RefTag>> {
-    std::size_t operator()(const physenv::details::Ref<T, RefTag>& ref) const { return std::hash<size_t>{}(ref.id); }
+    std::size_t operator()(const physenv::details::Ref<T, RefTag>& ref) const {
+        return std::hash<size_t>{}(ref.id);
+    }
 };

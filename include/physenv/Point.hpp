@@ -27,8 +27,7 @@ struct Point {
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Point& p) {
-        return os << p.fixed << ' ' << p.pos.x << ' ' << p.pos.y << ' ' << p.vel.x << ' ' << p.vel.y
-                  << ' ' << p.mass;
+        return os << p.fixed << ' ' << p.pos << ' ' << p.vel << ' ' << p.mass;
     }
 };
 

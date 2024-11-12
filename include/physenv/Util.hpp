@@ -18,10 +18,10 @@ std::istream& operator>>(std::istream& is, details::Vector2<T>& v) {
     return is;
 }
 
-std::istream& operator>>(std::istream& is, Point& p) {
+inline std::istream& operator>>(std::istream& is, Point& p) {
     safeStreamRead(is, p.fixed);
-    safeStreamRead(is, p.pos);
-    safeStreamRead(is, p.vel);
+    is >> p.pos;
+    is >> p.vel;
     safeStreamRead(is, p.mass);
     if (is.good()) {
         throw std::runtime_error("To many columns for a point - file invalid");
@@ -29,14 +29,14 @@ std::istream& operator>>(std::istream& is, Point& p) {
     return is;
 }
 
-std::istream& operator>>(std::istream& is, Polygon& p) {
+inline std::istream& operator>>(std::istream& is, Polygon& p) {
     std::vector<Vec2> verts{{}, {}, {}};
-    safeStreamRead(is, verts[0]);
-    safeStreamRead(is, verts[1]);
-    safeStreamRead(is, verts[2]);
+    is >> verts[0];
+    is >> verts[1];
+    is >> verts[2];
     while (is.good()) {
         verts.push_back(Vec2{});
-        safeStreamRead(is, verts.back());
+        is >> verts.back();
     }
     p = Polygon(verts);
     if (p.isConvex() == false)
@@ -45,15 +45,10 @@ std::istream& operator>>(std::istream& is, Polygon& p) {
 }
 
 // DOESN'T include PointRefs
-std::istream& operator>>(std::istream& is, Spring& s) {
+inline std::istream& operator>>(std::istream& is, Spring& s) {
     safeStreamRead(is, s.springConst);
     safeStreamRead(is, s.naturalLength);
     safeStreamRead(is, s.dampFact);
-    // safeStreamRead(is, s.p1);
-    // safeStreamRead(is, s.p2);
-    if (is.good()) {
-        throw std::runtime_error("To many columns for a spring - file invalid");
-    }
     return is;
 }
 

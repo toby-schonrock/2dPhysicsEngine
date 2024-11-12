@@ -68,7 +68,7 @@ class Vector2 {
     bool                     operator==(const Vector2&) const = default;
 
     friend std::ostream& operator<<(std::ostream& os, const Vector2& v) {
-        return os << '(' << v.x << ", " << v.y << ')';
+        return os << v.x << " " << v.y;
     }
 };
 

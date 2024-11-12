@@ -85,9 +85,9 @@ class Polygon {
 
     friend std::ostream& operator<<(std::ostream& os, const Polygon& p) {
         if (!p.edges.empty()) {
-            os << p.edges[0].p1().x << ' ' << p.edges[0].p1().y;
+            os << p.edges[0].p1();
             for (std::size_t i = 1; i != p.edges.size(); ++i) {
-                os << ' ' << p.edges[i].p1().x << ' ' << p.edges[i].p1().y;
+                os << ' ' << p.edges[i].p1();
             }
         }
         return os;

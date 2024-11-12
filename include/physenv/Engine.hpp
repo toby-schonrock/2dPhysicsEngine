@@ -54,9 +54,15 @@ class Engine {
         }
     }
 
-    void addPoint(const Point& p) { points.insert(p); }
+    template <typename T>
+    PointRef addPoint(T&& p) {
+        return points.insert(std::forward<T>(p));
+    }
 
-    void addSpring(const Spring& s) { springs.insert(s); }
+    template <typename T>
+    SpringRef addSpring(T&& s) {
+        return springs.insert(std::forward<T>(s));
+    }
 
     void rmvPoint(PointRef pos) {
         points.erase(pos);
@@ -182,6 +188,7 @@ class Engine {
         if (!file.is_open()) {
             throw std::runtime_error("Falied to open fstream \n");
         }
+        std::cout << "made it so far" << std::endl;
 
         file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
         file << PointHeaders << "\n";
@@ -203,64 +210,63 @@ class Engine {
                 ++i;
             }
         }
-        // file << PolyHeaders;
-        // if (enabled.polygons) {
-        //     for (const Polygon& p: polys) {
-        //         if (!p.edges.empty()) file << "\n" << p;
-        //     }
-        // }
+        file << PolyHeaders;
+        if (enabled.polygons) {
+            for (const auto& p: polys) {
+                if (!p.obj.edges.empty()) file << "\n" << p.obj;
+            }
+        }
     }
 
-    // static bool checkIfHeader(const std::string& header, const std::string& line) {
-    //     if (header.size() != line.size()) return false;
-    //     for (std::size_t i = 0; i != line.size(); ++i) {
-    //         if (header[i] != line[i]) return false;
-    //     }
-    //     return true;
-    // }
+    static bool checkIfHeader(const std::string& header, const std::string& line) {
+        if (header.size() != line.size()) return false;
+        for (std::size_t i = 0; i != line.size(); ++i) {
+            if (header[i] != line[i]) return false;
+        }
+        return true;
+    }
 
-    // static Engine softbody(EntityManager& entities, const Vector2<std::size_t>& size,
-    //                        const Vec2& simPos, float gravity, float gap, float springConst,
-    //                        float dampFact, sf::Color color = sf::Color::Yellow) {
-    //     Engine sim  = Engine(entities);
-    //     sim.gravity = gravity;
+    static Engine softbody(const details::Vector2<std::size_t>& size, const Vec2& simPos,
+                           float gravity, float gap, float springConst, float dampFact) {
+        Engine sim{gravity};
 
-    //     polys.reserve(2);
-    //     polys.push_back(Polygon::Square(Vec2(1, 0), -0.75));
-    //     polys.push_back(Polygon::Square(Vec2(9, 0), 0.75));
+        sim.polys.reserve(2);
+        sim.polys.insert(Polygon::Square(Vec2(1, 0), -0.75));
+        sim.polys.insert(Polygon::Square(Vec2(9, 0), 0.75));
 
-    //     sim.points.reserve(size.x * size.y);
-    //     for (unsigned x = 0; x != size.x; ++x) {
-    //         for (unsigned y = 0; y != size.y; ++y) {
-    //             addPoint({Vec2(x, y) * gap + simPos, 1.0, color, false});
-    //         }
-    //     }
+        sim.points.reserve(size.x * size.y);
+        std::vector<PointRef> tempPointRefs;
+        for (unsigned x = 0; x != size.x; ++x) {
+            for (unsigned y = 0; y != size.y; ++y) {
+                tempPointRefs.push_back(sim.addPoint(Point{Vec2(x, y) * gap + simPos, 1.0, false}));
+            }
+        }
 
-    //     for (std::size_t x = 0; x != size.x; ++x) {
-    //         for (std::size_t y = 0; y != size.y; ++y) {
-    //             PointRef p{x + y * size.x};
-    //             if (x < size.x - 1) {
-    //                 if (y < size.y - 1) {
-    //                     addSpring({springConst, dampFact,
-    //                                std::numbers::sqrt2 * static_cast<double>(gap), p,
-    //                                PointId{x + 1 + (y + 1) * size.x}}); // down right
-    //                 }
-    //                 addSpring(
-    //                     {springConst, dampFact, gap, p, PointId{x + 1 + (y)*size.x}}); // right
-    //             }
-    //             if (y < size.y - 1) {
-    //                 if (x > 0) {
-    //                     addSpring({springConst, dampFact,
-    //                                std::numbers::sqrt2 * static_cast<double>(gap), p,
-    //                                PointId{x - 1 + (y + 1) * size.x}}); // down left
-    //                 }
-    //                 addSpring(
-    //                     {springConst, dampFact, gap, p, PointId{x + (y + 1) * size.x}}); // down
-    //             }
-    //         }
-    //     }
-    //     return sim;
-    // }
+        for (std::size_t x = 0; x != size.x; ++x) {
+            for (std::size_t y = 0; y != size.y; ++y) {
+                PointRef p = tempPointRefs[x + y * size.x];
+                if (x < size.x - 1) {
+                    if (y < size.y - 1) {
+                        sim.addSpring(Spring{
+                            springConst, dampFact, std::numbers::sqrt2 * static_cast<double>(gap),
+                            p, tempPointRefs[x + 1 + (y + 1) * size.x]}); // down right
+                    }
+                    sim.addSpring(Spring{springConst, dampFact, gap, p,
+                                         tempPointRefs[x + 1 + (y)*size.x]}); // right
+                }
+                if (y < size.y - 1) {
+                    if (x > 0) {
+                        sim.addSpring(Spring{springConst, dampFact,
+                                             std::numbers::sqrt2 * static_cast<double>(gap), p,
+                                             tempPointRefs[x - 1 + (y + 1) * size.x]}); // down left
+                    }
+                    sim.addSpring(Spring{springConst, dampFact, gap, p,
+                                         tempPointRefs[x + (y + 1) * size.x]}); // down
+                }
+            }
+        }
+        return sim;
+    }
 };
 
 } // namespace physenv
