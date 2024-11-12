@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <filesystem>
-
 #include <fstream>
 #include <string>
 #include <vector>
@@ -10,6 +9,7 @@
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "Spring.hpp"
+#include "Util.hpp"
 
 namespace physenv {
 
@@ -195,14 +195,14 @@ class Engine {
                 ++i;
             }
         }
-        // file << SpringHeaders << "\n";
-        // if (enabled.springs) {
-        //     std::size_t i = 0;
-        //     for (const auto& s: springs) {
-        //         file << i << ' ' << s << "\n";
-        //         ++i;
-        //     }
-        // }
+        file << SpringHeaders << "\n";
+        if (enabled.springs) {
+            std::size_t i = 0;
+            for (const auto& s: springs) {
+                file << i << ' ' << s.obj << "\n";
+                ++i;
+            }
+        }
         // file << PolyHeaders;
         // if (enabled.polygons) {
         //     for (const Polygon& p: polys) {

@@ -29,6 +29,7 @@ if(PROJECT_IS_TOP_LEVEL)
   endif()
 endif()
 
+set(ABSL_PROPAGATE_CXX_STD ON)
 add_subdirectory(ext/abseil-cpp)
 
 add_library(physenv INTERFACE)

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Util.hpp"
 #include "details/StableVector.hpp"
+#include "details/Vector2.hpp"
 
 namespace physenv {
 
@@ -26,22 +26,9 @@ struct Point {
         f = Vec2();
     }
 
-    // used for saving point to file as text
     friend std::ostream& operator<<(std::ostream& os, const Point& p) {
         return os << p.fixed << ' ' << p.pos.x << ' ' << p.pos.y << ' ' << p.vel.x << ' ' << p.vel.y
                   << ' ' << p.mass;
-    }
-
-    // used for creating point from file
-    friend std::istream& operator>>(std::istream& is, Point& p) {
-        safeStreamRead(is, p.fixed);
-        safeStreamRead(is, p.pos);
-        safeStreamRead(is, p.vel);
-        safeStreamRead(is, p.mass);
-        if (is.good()) {
-            throw std::runtime_error("To many columns for a point - file invalid");
-        }
-        return is;
     }
 };
 

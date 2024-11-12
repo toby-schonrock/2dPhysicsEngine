@@ -5,9 +5,9 @@
 namespace physenv {
 
 struct Spring {
-    double  springConst;
-    double  dampFact;
-    double  naturalLength;
+    double   springConst;
+    double   dampFact;
+    double   naturalLength;
     PointRef p1;
     PointRef p2;
 
@@ -28,26 +28,11 @@ struct Spring {
         return (springf + dampf) * unitDiff;
     }
 
-    // represent spring as a string and push through stream
     friend std::ostream& operator<<(std::ostream& os, const Spring& s) {
         return os << s.springConst << ' ' << s.naturalLength << ' ' << s.dampFact << ' ';
-    }
-
-    // TODO reading and writing of refs needs fixing
-    // create spring from string stream
-    friend std::istream& operator>>(std::istream& is, Spring& s) {
-        safeStreamRead(is, s.springConst);
-        safeStreamRead(is, s.naturalLength);
-        safeStreamRead(is, s.dampFact);
-        // safeStreamRead(is, s.p1);
-        // safeStreamRead(is, s.p2);
-        if (is.good()) {
-            throw std::runtime_error("To many columns for a spring - file invalid");
-        }
-        return is;
     }
 };
 
 using SpringRef = details::Ref<Spring>;
 
-}
+} // namespace physenv

@@ -83,7 +83,6 @@ class Polygon {
         p.vel -= (2 * normal.dot(p.vel) * normal); // vector reflection formula
     }
 
-    // used for saving polygon to file as string
     friend std::ostream& operator<<(std::ostream& os, const Polygon& p) {
         if (!p.edges.empty()) {
             os << p.edges[0].p1().x << ' ' << p.edges[0].p1().y;
@@ -92,22 +91,6 @@ class Polygon {
             }
         }
         return os;
-    }
-
-    // used for creating polygon from string stream
-    friend std::istream& operator>>(std::istream& is, Polygon& p) {
-        std::vector<Vec2> verts{{}, {}, {}};
-        safeStreamRead(is, verts[0]);
-        safeStreamRead(is, verts[1]);
-        safeStreamRead(is, verts[2]);
-        while (is.good()) {
-            verts.push_back(Vec2{});
-            safeStreamRead(is, verts.back());
-        }
-        p = Polygon(verts);
-        if (p.isConvex() == false)
-            throw std::runtime_error("Polygon vertices do not form a convex polygon");
-        return is;
     }
 
     // static stuff
@@ -122,4 +105,4 @@ class Polygon {
 
 using PolyRef = details::Ref<Polygon>;
 
-}
+} // namespace physenv
