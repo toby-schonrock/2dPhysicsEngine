@@ -1,28 +1,13 @@
 #pragma once
 
 #include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <string>
 #include <vector>
 
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "Spring.hpp"
-#include "Util.hpp"
 
 namespace physenv {
-
-static const std::string PointHeaders{"point-id fixed posx posy velx vely mass color(rgba)"};
-static const std::string SpringHeaders =
-    "spring-id spring-const natural-length damping-factor point1 point2";
-static const std::string PolyHeaders = "polygon-verts: x y ...";
-
-struct ObjectEnabled {
-    bool points;
-    bool springs;
-    bool polygons;
-};
 
 class Engine {
   public:
@@ -110,122 +95,6 @@ class Engine {
 
     // void reset() { load(Previous, true, {true, true, true}, false); }
 
-    // void load(std::filesystem::path path, bool replace, ObjectEnabled enabled) {
-    //     path.make_preferred();
-    //     if (replace) {
-    //         points.clear();
-    //         springs.clear();
-    //         polys.clear();
-    //     }
-    //     PointId pointOffset = static_cast<PointId>(points.size());
-
-    //     std::ifstream file{path, std::ios_base::in};
-    //     if (!file.is_open()) {
-    //         throw std::runtime_error("failed to open file \"" + path.string() + '"');
-    //     }
-
-    //     std::string line;
-    //     // points
-    //     std::getline(file, line);
-    //     if (line != PointHeaders)
-    //         throw std::runtime_error("Point headers invalid: \n is - " + line + "\n should be - "
-    //         +
-    //                                  PointHeaders);
-
-    //     std::stringstream ss;
-    //     std::size_t       index = 0;
-    //     while (true) {
-    //         std::getline(file, line);
-    //         if (checkIfHeader(SpringHeaders, line)) break;
-    //         if (enabled.points) {
-    //             Point point{};
-    //             ss = std::stringstream(line);
-    //             std::size_t temp;
-    //             safeStreamRead(ss, temp);
-    //             if (temp != index)
-    //                 throw std::runtime_error("Non continous point indicie - " + line);
-    //             safeStreamRead(ss, point);
-    //             ++index;
-    //             addPoint(point);
-    //         }
-    //     }
-
-    //     index = 0;
-    //     while (true) {
-    //         std::getline(file, line);
-    //         if (checkIfHeader(PolyHeaders, line)) break;
-    //         if (enabled.springs) {
-    //             ss = std::stringstream(line);
-    //             Spring      spring{};
-    //             std::size_t temp;
-    //             safeStreamRead(ss, temp);
-    //             if (temp != index)
-    //                 throw std::runtime_error("Non continous spring indicie - " + line);
-    //             safeStreamRead(ss, spring);
-    //             spring.p1 += pointOffset;
-    //             spring.p2 += pointOffset;
-    //             ++index;
-    //             addSpring(spring);
-    //         }
-    //     }
-
-    //     while (!file.eof()) {
-    //         std::getline(file, line);
-    //         if (enabled.polygons) {
-    //             ss = std::stringstream(line);
-    //             if (ss.good()) { // deal with emtpy new lines at end
-    //                 Polygon poly{};
-    //                 safeStreamRead(ss, poly);
-    //                 polys.push_back(poly);
-    //             }
-    //         }
-    //     }
-    // }
-
-    void save(std::filesystem::path path, ObjectEnabled enabled) const {
-        path.make_preferred();
-        std::ofstream file{path};
-        if (!file.is_open()) {
-            throw std::runtime_error("Falied to open fstream \n");
-        }
-        std::cout << "made it so far" << std::endl;
-
-        file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
-        file << PointHeaders << "\n";
-        std::unordered_map<PointRef, std::size_t> tempPointIds;
-        if (enabled.points) {
-            std::size_t i = 0;
-            for (const auto& p: points) {
-                file << i << ' ' << p.obj << "\n";
-                tempPointIds[p.ind] = i;
-                tempPointIds.insert(std::make_pair(p.ind, i));
-                ++i;
-            }
-        }
-        file << SpringHeaders << "\n";
-        if (enabled.springs) {
-            std::size_t i = 0;
-            for (const auto& s: springs) {
-                file << i << ' ' << s.obj << "\n";
-                ++i;
-            }
-        }
-        file << PolyHeaders;
-        if (enabled.polygons) {
-            for (const auto& p: polys) {
-                if (!p.obj.edges.empty()) file << "\n" << p.obj;
-            }
-        }
-    }
-
-    static bool checkIfHeader(const std::string& header, const std::string& line) {
-        if (header.size() != line.size()) return false;
-        for (std::size_t i = 0; i != line.size(); ++i) {
-            if (header[i] != line[i]) return false;
-        }
-        return true;
-    }
-
     static Engine softbody(const details::Vector2<std::size_t>& size, const Vec2& simPos,
                            float gravity, float gap, float springConst, float dampFact) {
         Engine sim{gravity};
@@ -270,3 +139,7 @@ class Engine {
 };
 
 } // namespace physenv
+
+// using PointRef = physenv::PointRef;
+// using SpringRef = physenv::SpringRef;
+// using PolyRef = physenv::PolyRef;

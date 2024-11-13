@@ -314,7 +314,7 @@ class CompactMap {
     void                      clear() { // invalidates all refs previously made by this object
         vec.clear();
         map.clear();
-        nextInd = 0;
+        nextInd = {};
     }
     // TODO make map.at debug only
     [[nodiscard]] T&       operator[](const Ref& ind) { return vec[map.at(ind.id)].obj; }

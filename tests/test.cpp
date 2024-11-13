@@ -1,4 +1,4 @@
-#include "physenv/Engine.hpp"
+#include "physenv/Persistance.hpp"
 #include "gtest/gtest.h"
 #include <ranges>
 
@@ -21,7 +21,7 @@ class StableVectors : public testing::Test {
     T vec;
 };
 
-using TestedTypes = ::testing::Types<details::PepperedVector<int>, details::CompactMap<int>>;
+using TestedTypes = testing::Types<details::PepperedVector<int>, details::CompactMap<int>>;
 TYPED_TEST_SUITE(StableVectors, TestedTypes);
 
 TYPED_TEST(StableVectors, IsEmptyIntially) { EXPECT_TRUE(this->vec.empty()); }
@@ -118,20 +118,35 @@ TYPED_TEST(StableVectors, Removing) {
     EXPECT_EQ(vec.size(), 0);
 }
 
-class EngineTest : testing::Test {
-  public:
+class EngineTest : public testing::Test {
+  protected:
     Engine e = Engine::softbody({5, 5}, {0.0f, 0.0f}, 10.0f, 10.0f, 10.0f, 1.0f);
 };
 
-TEST_F(EngineTest, Construct) {
-    auto e = this->e;
+TEST_F(EngineTest, ConstructSoftBody) {
     ASSERT_EQ(e.points.size(), 25);
     ASSERT_EQ(e.springs.size(), 72);
     ASSERT_EQ(e.polys.size(), 2);
 }
 
-TEST_F(EngineTest, Save) {
-    std::filesystem::path p = "eng.csv";
+TEST_F(EngineTest, SaveAndLoadEng) {
+    std::filesystem::path p = "SaveAndLoadTest.csv";
     std::cout << std::filesystem::current_path() << p << "\n";
-    e.save(p, {true, true, true});
+    persisitance::saveEng(e, p, {true, true, true});
+    Engine e2{};
+    persisitance::loadEng(e2, p, false, {true, true, true});
+    ASSERT_EQ(e.points.size(), e2.points.size());
+    ASSERT_EQ(e.springs.size(), e2.springs.size());
+    ASSERT_EQ(e.polys.size(), e2.polys.size());
+}
+
+TEST_F(EngineTest, SaveAndLoadEngPartial) {
+    std::filesystem::path p = "SaveAndLoadTestPartial.csv";
+    std::cout << std::filesystem::current_path() << p << "\n";
+    persisitance::saveEng(e, p, {true, false, true});
+    Engine e2{};
+    persisitance::loadEng(e2, p, false, {true, true, false});
+    ASSERT_EQ(e.points.size(), e2.points.size());
+    ASSERT_EQ(e2.springs.size(), 0);
+    ASSERT_EQ(e2.polys.size(), 0);
 }
