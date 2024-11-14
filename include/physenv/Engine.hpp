@@ -107,7 +107,7 @@ class Engine {
         std::vector<PointRef> tempPointRefs;
         for (unsigned x = 0; x != size.x; ++x) {
             for (unsigned y = 0; y != size.y; ++y) {
-                tempPointRefs.push_back(sim.addPoint(Point{Vec2(x, y) * gap + simPos, 1.0, false}));
+                tempPointRefs.push_back(sim.addPoint(Point{Vec2(x, y) * gap + simPos, 1.0}));
             }
         }
 

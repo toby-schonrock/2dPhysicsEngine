@@ -2,7 +2,7 @@
 
 #include <vector>
 
-// TODO maybe move out of physenv
+// TODO maybe move out of physenv or not if runge kutta
 
 namespace physenv::details {
 

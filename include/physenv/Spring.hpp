@@ -13,8 +13,8 @@ struct Spring {
 
     void springHandler(Point& point1, Point& point2) const {
         Vec2 force = forceCalc(point1, point2);
-        point1.f += force; // equal and opposite reaction
-        point2.f -= force;
+        point1.force += force; // equal and opposite reaction
+        point2.force -= force;
     }
 
     Vec2 forceCalc(const Point& point1, const Point& point2) const {

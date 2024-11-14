@@ -56,15 +56,15 @@ class Vector2 {
     // clang-format off
     constexpr Vector2& operator+=(const Vector2& obj) { x += obj.x; y += obj.y; return *this; }
     constexpr Vector2& operator-=(const Vector2& obj) { x -= obj.x; y -= obj.y; return *this; }
-    constexpr Vector2& operator*=(double scale) { x *= scale; y *= scale; return *this; }
-    constexpr Vector2& operator/=(double scale) { x /= scale; y /= scale; return *this; }
+    constexpr Vector2& operator*=(T scale) { x *= scale; y *= scale; return *this; }
+    constexpr Vector2& operator/=(T scale) { x /= scale; y /= scale; return *this; }
     // clang-format on
 
     constexpr friend Vector2 operator+(Vector2 lhs, const Vector2& rhs) { return lhs += rhs; }
     constexpr friend Vector2 operator-(Vector2 lhs, const Vector2& rhs) { return lhs -= rhs; }
-    constexpr friend Vector2 operator*(Vector2 lhs, double scale) { return lhs *= scale; }
-    constexpr friend Vector2 operator*(double scale, Vector2 rhs) { return rhs *= scale; }
-    constexpr friend Vector2 operator/(Vector2 lhs, double scale) { return lhs /= scale; }
+    constexpr friend Vector2 operator*(Vector2 lhs, T scale) { return lhs *= scale; }
+    constexpr friend Vector2 operator*(T scale, Vector2 rhs) { return rhs *= scale; }
+    constexpr friend Vector2 operator/(Vector2 lhs, T scale) { return lhs /= scale; }
     bool                     operator==(const Vector2&) const = default;
 
     friend std::ostream& operator<<(std::ostream& os, const Vector2& v) {
